@@ -1,0 +1,173 @@
+/* ============================================================
+   Firmo — tema da UI (style guide: ui/styles.css)
+   Tokens semânticos do shadcn portados para a nova identidade:
+   dark como base, light como alternativa, azul institucional,
+   texto suave, hairlines sutis, Public Sans + IBM Plex Mono.
+   ============================================================ */
+
+/* ---------------- LIGHT (default :root) ---------------- */
+:root {
+  /* superfícies */
+  --background: oklch(0.97 0.004 256);
+  --foreground: oklch(0.3 0.018 256);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.3 0.018 256);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.3 0.018 256);
+
+  /* marca / ações */
+  --primary: oklch(0.39 0.045 256);
+  --primary-foreground: oklch(0.99 0.005 256);
+
+  --secondary: oklch(0.965 0.004 256);
+  --secondary-foreground: oklch(0.3 0.018 256);
+  --muted: oklch(0.965 0.004 256);
+  --muted-foreground: oklch(0.48 0.016 256);
+  --accent: oklch(0.945 0.005 256);
+  --accent-foreground: oklch(0.3 0.018 256);
+
+  /* status */
+  --destructive: oklch(0.5 0.18 25);
+  --destructive-foreground: oklch(0.99 0.005 256);
+  --success: oklch(0.46 0.12 158);
+  --success-foreground: oklch(0.99 0.005 158);
+  --warning: oklch(0.52 0.12 65);
+  --warning-foreground: oklch(0.99 0.005 65);
+  --info: oklch(0.5 0.085 256);
+  --info-foreground: oklch(0.99 0.005 256);
+  --invert: oklch(0.3 0.018 256);
+  --invert-foreground: oklch(0.99 0.005 256);
+
+  /* linhas / inputs / foco */
+  --border: oklch(0.5 0.02 256 / 0.13);
+  --input: oklch(0.5 0.02 256 / 0.13);
+  --ring: oklch(0.5 0.085 256);
+
+  /* sidebar */
+  --sidebar: oklch(1 0 0);
+  --sidebar-foreground: oklch(0.48 0.016 256);
+  --sidebar-primary: oklch(0.5 0.085 256);
+  --sidebar-primary-foreground: oklch(0.99 0.005 256);
+  --sidebar-accent: oklch(0.965 0.004 256);
+  --sidebar-accent-foreground: oklch(0.3 0.018 256);
+  --sidebar-border: oklch(0.5 0.02 256 / 0.13);
+  --sidebar-ring: oklch(0.5 0.085 256);
+
+  /* charts (tons do acento) */
+  --chart-1: oklch(0.62 0.09 256);
+  --chart-2: oklch(0.56 0.085 256);
+  --chart-3: oklch(0.5 0.08 256);
+  --chart-4: oklch(0.66 0.13 158);
+  --chart-5: oklch(0.62 0.13 70);
+
+  /* fontes (Public Sans definida via next/font no layout) */
+  --font-heading: var(--font-sans);
+
+  /* raio base (≈9.6px; card xl ≈13px) */
+  --radius: 0.6rem;
+
+  /* tipografia (valores do guide) */
+  --text-2xs: 0.656rem; /* 10.5px */
+  --text-xs: 0.719rem; /* 11.5px */
+  --text-sm: 0.781rem; /* 12.5px */
+  --text-base: 0.844rem; /* 13.5px */
+  --text-md: 0.906rem; /* 14.5px */
+  --text-lg: 1.125rem; /* 18px */
+  --text-xl: 1.375rem; /* 22px */
+  --text-2xl: 1.625rem; /* 26px */
+  --tracking-base: 0.005em;
+
+  /* densidade */
+  --row-h: 46px;
+  --pad: 22px;
+
+  /* sombra (duas camadas) */
+  --shadow: 0 1px 2px oklch(0.4 0.02 256 / 0.06), 0 6px 20px oklch(0.4 0.03 256 / 0.08);
+
+  /* scrollbar */
+  --scrollbar: oklch(0.88 0.006 256);
+  --scrollbar-hover: oklch(0.62 0.013 256);
+
+  /* sub-nav (camada "content" do guide) */
+  --subnav: oklch(0.985 0.003 256);
+}
+
+/* ---------------- DARK (base do visual / imagens) ---------------- */
+.dark {
+  --background: oklch(0.165 0.008 256);
+  --foreground: oklch(0.88 0.006 256);
+  --card: oklch(0.225 0.009 256);
+  --card-foreground: oklch(0.88 0.006 256);
+  --popover: oklch(0.225 0.009 256);
+  --popover-foreground: oklch(0.88 0.006 256);
+
+  --primary: oklch(0.39 0.045 256);
+  --primary-foreground: oklch(0.99 0.005 256);
+
+  --secondary: oklch(0.255 0.01 256);
+  --secondary-foreground: oklch(0.88 0.006 256);
+  --muted: oklch(0.255 0.01 256);
+  --muted-foreground: oklch(0.66 0.012 256);
+  --accent: oklch(0.255 0.01 256);
+  --accent-foreground: oklch(0.88 0.006 256);
+
+  --destructive: oklch(0.7 0.16 25);
+  --destructive-foreground: oklch(0.16 0.02 25);
+  --success: oklch(0.8 0.13 158);
+  --success-foreground: oklch(0.22 0.05 158);
+  --warning: oklch(0.82 0.13 78);
+  --warning-foreground: oklch(0.24 0.05 78);
+  --info: oklch(0.7 0.09 256);
+  --info-foreground: oklch(0.2 0.04 256);
+  --invert: oklch(0.88 0.006 256);
+  --invert-foreground: oklch(0.165 0.008 256);
+
+  --border: oklch(1 0 0 / 0.07);
+  --input: oklch(1 0 0 / 0.1);
+  --ring: oklch(0.56 0.085 256);
+
+  --sidebar: oklch(0.225 0.009 256);
+  --sidebar-foreground: oklch(0.66 0.012 256);
+  --sidebar-primary: oklch(0.56 0.085 256);
+  --sidebar-primary-foreground: oklch(0.99 0.005 256);
+  --sidebar-accent: oklch(0.255 0.01 256);
+  --sidebar-accent-foreground: oklch(0.88 0.006 256);
+  --sidebar-border: oklch(1 0 0 / 0.07);
+  --sidebar-ring: oklch(0.56 0.085 256);
+
+  --chart-1: oklch(0.72 0.1 256);
+  --chart-2: oklch(0.62 0.09 256);
+  --chart-3: oklch(0.56 0.085 256);
+  --chart-4: oklch(0.8 0.13 158);
+  --chart-5: oklch(0.82 0.13 78);
+
+  --shadow: 0 1px 2px oklch(0 0 0 / 0.4), 0 8px 24px oklch(0 0 0 / 0.28);
+
+  --scrollbar: oklch(0.295 0.011 256);
+  --scrollbar-hover: oklch(0.5 0.012 256);
+
+  --subnav: oklch(0.185 0.008 256);
+}
+
+/* ---------------- scrollbars discretas (do style guide) ---------------- */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar) transparent;
+}
+::-webkit-scrollbar {
+  width: 9px;
+  height: 9px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--scrollbar);
+  border-radius: 99px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar-hover);
+  background-clip: content-box;
+}
