@@ -5,6 +5,12 @@ import {
 } from "@tanstack/react-query"
 import { z } from "zod"
 import { apiFetch } from "@/lib/api"
+import {
+  decimalSchema,
+  processSchema,
+  siafiSchema,
+  sneSchema,
+} from "@/lib/validation"
 
 /** Espelha o CommitmentResponseDto (empenho) do backend. */
 export interface Commitment {
@@ -25,18 +31,11 @@ export interface Commitment {
 /** Validação do form de criação de empenho (espelha os formatos do backend). */
 export const createCommitmentSchema = z.object({
   contractId: z.string().min(1, "Selecione o contrato"),
-  sne: z.string().regex(/^\d{9}$/, "Formato esperado: 202600408"),
+  sne: sneSchema(),
   sneDate: z.string().min(1, "Informe a data do SNE"),
-  processNumber: z
-    .string()
-    .regex(
-      /^\d{5}\.\d{6}\/\d{4}-\d{2}$/,
-      "Formato esperado: 23080.003729/2026-38"
-    ),
-  siafi: z.string().regex(/^\d{4}NE\d{6}$/, "Formato esperado: 2026NE000177"),
-  initialValue: z
-    .string()
-    .regex(/^\d+(\.\d{1,2})?$/, "Informe um valor válido"),
+  processNumber: processSchema(),
+  siafi: siafiSchema(),
+  initialValue: decimalSchema(),
 })
 
 export type CreateCommitmentFormValues = z.infer<typeof createCommitmentSchema>

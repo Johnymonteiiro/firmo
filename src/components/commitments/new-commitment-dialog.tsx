@@ -5,9 +5,9 @@ import { Controller, useForm } from "react-hook-form"
 import { standardSchemaResolver } from "@hookform/resolvers/standard-schema"
 
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import { MaskedInput } from "@/components/ui/masked-input"
 import { Combobox } from "@/components/form/combobox"
+import { DatePicker } from "@/components/form/date-picker"
 import { FormDialog } from "@/components/form/form-dialog"
 import { Field, SectionTitle } from "@/components/form/form-field"
 import { ApiError } from "@/lib/api"
@@ -41,7 +41,6 @@ export function NewCommitmentDialog() {
   }))
 
   const {
-    register,
     handleSubmit,
     control,
     reset,
@@ -130,10 +129,17 @@ export function NewCommitmentDialog() {
       </Field>
 
       <Field label="Data do SNE" error={errors.sneDate?.message}>
-        <Input
-          type="date"
-          aria-invalid={!!errors.sneDate}
-          {...register("sneDate")}
+        <Controller
+          control={control}
+          name="sneDate"
+          render={({ field }) => (
+            <DatePicker
+              value={field.value}
+              onChange={field.onChange}
+              onBlur={field.onBlur}
+              aria-invalid={!!errors.sneDate}
+            />
+          )}
         />
       </Field>
 

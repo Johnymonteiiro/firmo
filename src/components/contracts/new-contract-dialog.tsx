@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { MaskedInput } from "@/components/ui/masked-input"
 import { Textarea } from "@/components/ui/textarea"
+import { DatePicker } from "@/components/form/date-picker"
 import { FormDialog } from "@/components/form/form-dialog"
 import { Field, SectionTitle } from "@/components/form/form-field"
 import { ApiError } from "@/lib/api"
@@ -183,18 +184,32 @@ export function NewContractDialog() {
       <SectionTitle>Vigência e Valor</SectionTitle>
       <div className="col-span-2 grid grid-cols-3 gap-4">
         <Field label="Data de Início" error={errors.startDate?.message}>
-          <Input
-            type="date"
-            aria-invalid={!!errors.startDate}
-            {...register("startDate")}
+          <Controller
+            control={control}
+            name="startDate"
+            render={({ field }) => (
+              <DatePicker
+                value={field.value}
+                onChange={field.onChange}
+                onBlur={field.onBlur}
+                aria-invalid={!!errors.startDate}
+              />
+            )}
           />
         </Field>
 
         <Field label="Vencimento do Contrato" error={errors.expiresAt?.message}>
-          <Input
-            type="date"
-            aria-invalid={!!errors.expiresAt}
-            {...register("expiresAt")}
+          <Controller
+            control={control}
+            name="expiresAt"
+            render={({ field }) => (
+              <DatePicker
+                value={field.value}
+                onChange={field.onChange}
+                onBlur={field.onBlur}
+                aria-invalid={!!errors.expiresAt}
+              />
+            )}
           />
         </Field>
 

@@ -5,6 +5,11 @@ import {
 } from "@tanstack/react-query"
 import { z } from "zod"
 import { apiFetch } from "@/lib/api"
+import {
+  contractNumberSchema,
+  decimalSchema,
+  processSchema,
+} from "@/lib/validation"
 
 export type ContractStatus = "VIGENTE" | "ENCERRADO" | "EXPIRADO"
 
@@ -53,15 +58,8 @@ export interface CreateContractInput {
 /** Validação do form de criação, espelhando os formatos do backend. */
 export const createContractSchema = z
   .object({
-    contractNumber: z
-      .string()
-      .regex(/^\d+\/\d{4}$/, "Formato esperado: 97/2023"),
-    processNumber: z
-      .string()
-      .regex(
-        /^\d{5}\.\d{6}\/\d{4}-\d{2}$/,
-        "Formato esperado: 23080.048126/2020-70"
-      ),
+    contractNumber: contractNumberSchema(),
+    processNumber: processSchema(),
     adminFiscal: z.string().trim().min(1, "Informe o fiscal administrativo"),
     techFiscals: z.string().trim().min(1, "Informe os fiscais técnicos"),
     company: z.string().trim().min(1, "Informe a empresa"),
@@ -69,9 +67,7 @@ export const createContractSchema = z
     manager: z.string().trim().min(1, "Informe o gestor"),
     startDate: z.string().min(1, "Informe a data de início"),
     expiresAt: z.string().min(1, "Informe o vencimento"),
-    monthlyValue: z
-      .string()
-      .regex(/^\d+(\.\d{1,2})?$/, "Informe um valor válido"),
+    monthlyValue: decimalSchema(),
     notes: z.string().optional(),
   })
   .refine((d) => !d.startDate || !d.expiresAt || d.expiresAt >= d.startDate, {

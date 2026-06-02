@@ -34,6 +34,8 @@ export interface DataTableProps<TData extends object> {
   actions?: React.ReactNode
   emptyMessage?: string
   initialPageSize?: number
+  /** Colunas redimensionáveis. Quando false, a tabela ocupa toda a largura (ideal p/ poucas colunas). */
+  resizable?: boolean
 }
 
 export function DataTable<TData extends object>({
@@ -46,6 +48,7 @@ export function DataTable<TData extends object>({
   actions,
   emptyMessage = "Nenhum registro encontrado.",
   initialPageSize = 10,
+  resizable = true,
 }: DataTableProps<TData>) {
   const [sorting, setSorting] = React.useState<SortingState>([])
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
@@ -84,8 +87,9 @@ export function DataTable<TData extends object>({
       isLoading={isLoading}
       emptyMessage={emptyMessage}
       tableLayout={{
-        columnsResizable: true,
+        columnsResizable: resizable,
         columnsResizeMode: "onChange",
+        width: resizable ? "fixed" : "auto",
         headerBorder: false,
       }}
       tableClassNames={{

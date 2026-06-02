@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { MaskedInput } from "@/components/ui/masked-input"
 import { Combobox } from "@/components/form/combobox"
+import { DatePicker } from "@/components/form/date-picker"
 import { FormDialog } from "@/components/form/form-dialog"
 import { Field, SectionTitle } from "@/components/form/form-field"
 import { ApiError } from "@/lib/api"
@@ -141,10 +142,17 @@ export function NewReinforcementDialog() {
       </Field>
 
       <Field label="Data do Reforço" error={errors.reinforcementDate?.message}>
-        <Input
-          type="date"
-          aria-invalid={!!errors.reinforcementDate}
-          {...register("reinforcementDate")}
+        <Controller
+          control={control}
+          name="reinforcementDate"
+          render={({ field }) => (
+            <DatePicker
+              value={field.value}
+              onChange={field.onChange}
+              onBlur={field.onBlur}
+              aria-invalid={!!errors.reinforcementDate}
+            />
+          )}
         />
       </Field>
 

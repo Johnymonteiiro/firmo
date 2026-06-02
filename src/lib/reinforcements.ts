@@ -5,6 +5,8 @@ import {
 } from "@tanstack/react-query"
 import { z } from "zod"
 import { apiFetch } from "@/lib/api"
+import { commitmentsKey } from "@/lib/commitments"
+import { decimalSchema, processSchema } from "@/lib/validation"
 
 /** Espelha o ReinforcementResponseDto (reforço) do backend. */
 export interface Reinforcement {
@@ -22,13 +24,8 @@ export interface Reinforcement {
 /** Validação do form de criação de reforço. */
 export const createReinforcementSchema = z.object({
   commitmentId: z.string().min(1, "Selecione o empenho"),
-  value: z.string().regex(/^\d+(\.\d{1,2})?$/, "Informe um valor válido"),
-  processNumber: z
-    .string()
-    .regex(
-      /^\d{5}\.\d{6}\/\d{4}-\d{2}$/,
-      "Formato esperado: 23080.003729/2026-38"
-    ),
+  value: decimalSchema(),
+  processNumber: processSchema(),
   reinforcementDate: z.string().min(1, "Informe a data do reforço"),
   reinforcedBy: z.string().trim().min(1, "Informe quem reforçou"),
 })
@@ -91,6 +88,8 @@ export function useCreateReinforcement() {
     mutationFn: createReinforcement,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: reinforcementsKey })
+      // o reforço altera o saldo/soma do empenho
+      queryClient.invalidateQueries({ queryKey: commitmentsKey })
     },
   })
 }

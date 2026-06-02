@@ -3,7 +3,7 @@ import { PlaceholderPanel } from "@/components/placeholder-panel"
 
 export default function Page() {
   return (
-    <PageSection title="Empenhos Arquivados">
+    <PageSection title="Faturamentos Arquivados">
       <PlaceholderPanel title="Em construção" />
     </PageSection>
   )
