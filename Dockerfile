@@ -3,7 +3,7 @@
 # ---- Base: Node + pnpm ----
 FROM node:22-alpine AS base
 RUN apk add --no-cache libc6-compat
-RUN npm install -g pnpm@9
+RUN npm install -g pnpm@9.15.4
 WORKDIR /app
 
 # ---- Dependencies (cache por lockfile) ----

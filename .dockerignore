@@ -1,5 +1,11 @@
 node_modules
 .next
+# config de workspace do pnpm (o projeto é single-package). Evita que um
+# pnpm-workspace.yaml gerado no host entre no contexto e quebre o build
+# com "packages field missing or empty".
+pnpm-workspace.yaml
+pnpm-workspace.yml
+.pnpm-store
 .git
 .gitignore
 .vscode
