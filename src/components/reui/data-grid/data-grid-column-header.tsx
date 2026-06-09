@@ -46,6 +46,9 @@ function DataGridColumnHeaderInner<TData, TValue>({
   filter,
   visibility = false,
 }: DataGridColumnHeaderProps<TData, TValue>) {
+  // React Compiler congelaria o ícone de ordenação (lê column.getIsSorted()
+  // de uma ref estável). Opt-out para refletir o estado de sort.
+  "use no memo"
   const { isLoading, table, props, recordCount } = useDataGrid()
   const resolvedTitle = title ?? getColumnHeaderLabel(column)
 
@@ -91,10 +94,12 @@ function DataGridColumnHeaderInner<TData, TValue>({
       <HugeiconsIcon icon={UnfoldMoreIcon} strokeWidth={2} className="mt-px size-3.25" />
     ))
 
+  // Nota: o pinning é fixo (1ª/última coluna) via estado; não expomos o
+  // controle de pin no cabeçalho para manter os headers limpos e evitar o
+  // bug de re-render do corpo ao re-fixar.
   const hasControls =
     props.tableLayout?.columnsMovable ||
     (props.tableLayout?.columnsVisibility && visibility) ||
-    (props.tableLayout?.columnsPinnable && canPin) ||
     filter
 
   const menuItems = useMemo(() => {

@@ -125,6 +125,7 @@ function DataGridProvider<TData extends object>({
   table,
   ...props
 }: DataGridProps<TData> & { table: Table<TData> }) {
+  "use no memo"
   const tableState = table.getState()
   const resolvedColumnsResizeMode =
     props.tableLayout?.columnsResizeMode ?? "onEnd"
@@ -188,6 +189,7 @@ function DataGrid<TData extends object>({
   table,
   ...props
 }: DataGridProps<TData>) {
+  "use no memo"
   const defaultProps: Partial<DataGridProps<TData>> = {
     loadingMode: "skeleton",
     tableLayout: {

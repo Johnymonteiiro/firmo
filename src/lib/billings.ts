@@ -94,7 +94,29 @@ export function createBilling(
   })
 }
 
+export function archiveBilling(billingId: string): Promise<unknown> {
+  return apiFetch(`/billings/${billingId}`, { method: "DELETE" })
+}
+
+export function listArchivedBillings({
+  page = 1,
+  pageSize = 20,
+}: ListBillingsParams = {}): Promise<ListBillingsResponse> {
+  const params = new URLSearchParams({
+    page: String(page),
+    pageSize: String(pageSize),
+  })
+  return apiFetch<ListBillingsResponse>(
+    `/billings/archived?${params.toString()}`
+  )
+}
+
+export function unarchiveBilling(billingId: string): Promise<unknown> {
+  return apiFetch(`/billings/${billingId}/unarchive`, { method: "POST" })
+}
+
 export const billingsKey = ["billings"] as const
+export const billingsArchivedKey = ["billings", "archived"] as const
 
 export function useBillings(page: number, pageSize: number) {
   return useQuery({
@@ -108,6 +130,34 @@ export function useCreateBilling() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: createBilling,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: billingsKey })
+    },
+  })
+}
+
+export function useArchiveBilling() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: archiveBilling,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: billingsKey })
+    },
+  })
+}
+
+export function useArchivedBillings(page: number, pageSize: number) {
+  return useQuery({
+    queryKey: [...billingsArchivedKey, page, pageSize],
+    queryFn: () => listArchivedBillings({ page, pageSize }),
+    placeholderData: (prev) => prev,
+  })
+}
+
+export function useUnarchiveBilling() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: unarchiveBilling,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: billingsKey })
     },

@@ -1,12 +1,12 @@
 "use client"
 
 import type { ColumnDef } from "@tanstack/react-table"
-import { toast } from "sonner"
 
 import { DataGridColumnHeader } from "@/components/reui/data-grid/data-grid-column-header"
 import { DataTableRowActions } from "@/components/data-table/data-table-row-actions"
+import { actionsColumn } from "@/components/data-table/columns"
 import { formatDate } from "@/lib/format"
-import type { Commitment } from "@/lib/commitments"
+import { useArchiveCommitment, type Commitment } from "@/lib/commitments"
 
 export interface CommitmentColumnsOptions {
   /** contractId -> número do contrato (ex.: "2333/2026"). */
@@ -128,23 +128,23 @@ export function commitmentColumns({
       ),
       size: 150,
     },
-    {
-      id: "actions",
-      header: "",
-      cell: ({ row }) => (
-        <DataTableRowActions
-          onEdit={() =>
-            toast.info("Editar empenho", { description: row.original.sne })
-          }
-          onArchive={() =>
-            toast.warning("Arquivar empenho", { description: row.original.sne })
-          }
-        />
-      ),
-      size: 60,
-      enableSorting: false,
-      enableHiding: false,
-      enableResizing: false,
-    },
+    actionsColumn(({ row }) => (
+      <CommitmentActionsCell commitment={row.original} />
+    )),
   ]
+}
+
+function CommitmentActionsCell({ commitment }: { commitment: Commitment }) {
+  const archive = useArchiveCommitment()
+  return (
+    <DataTableRowActions
+      entityLabel="empenho"
+      history={{
+        entity: "commitment",
+        recordId: commitment.commitmentId,
+        subtitle: `SNE ${commitment.sne} · ${commitment.contractedCompany}`,
+      }}
+      onArchive={() => archive.mutateAsync(commitment.commitmentId)}
+    />
+  )
 }

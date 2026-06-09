@@ -76,7 +76,30 @@ export function createCommitment(
   })
 }
 
+export function archiveCommitment(commitmentId: string): Promise<unknown> {
+  return apiFetch(`/commitments/${commitmentId}`, { method: "DELETE" })
+}
+
+export function listArchivedCommitments({
+  page = 1,
+  pageSize = 20,
+}: ListCommitmentsParams = {}): Promise<ListCommitmentsResponse> {
+  const params = new URLSearchParams({
+    page: String(page),
+    pageSize: String(pageSize),
+  })
+  // NB: o backend usa "archieved" (typo) para empenhos.
+  return apiFetch<ListCommitmentsResponse>(
+    `/commitments/archieved?${params.toString()}`
+  )
+}
+
+export function unarchiveCommitment(commitmentId: string): Promise<unknown> {
+  return apiFetch(`/commitments/${commitmentId}/unarchive`, { method: "POST" })
+}
+
 export const commitmentsKey = ["commitments"] as const
+export const commitmentsArchivedKey = ["commitments", "archived"] as const
 
 export function useCommitments(page: number, pageSize: number) {
   return useQuery({
@@ -90,6 +113,34 @@ export function useCreateCommitment() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: createCommitment,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: commitmentsKey })
+    },
+  })
+}
+
+export function useArchiveCommitment() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: archiveCommitment,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: commitmentsKey })
+    },
+  })
+}
+
+export function useArchivedCommitments(page: number, pageSize: number) {
+  return useQuery({
+    queryKey: [...commitmentsArchivedKey, page, pageSize],
+    queryFn: () => listArchivedCommitments({ page, pageSize }),
+    placeholderData: (prev) => prev,
+  })
+}
+
+export function useUnarchiveCommitment() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: unarchiveCommitment,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: commitmentsKey })
     },

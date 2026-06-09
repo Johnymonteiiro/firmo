@@ -23,6 +23,11 @@ import {
   type DataTableFilter,
 } from "@/components/data-table/data-table-toolbar"
 
+/** id resolvido de uma coluna (id explícito ou accessorKey). */
+function columnId<TData>(col: ColumnDef<TData>): string | undefined {
+  return col.id ?? (col as { accessorKey?: string }).accessorKey
+}
+
 export interface DataTableProps<TData extends object> {
   columns: ColumnDef<TData>[]
   data: TData[]
@@ -36,6 +41,10 @@ export interface DataTableProps<TData extends object> {
   initialPageSize?: number
   /** Colunas redimensionáveis. Quando false, a tabela ocupa toda a largura (ideal p/ poucas colunas). */
   resizable?: boolean
+  /** Clique na linha (ex.: abrir histórico). */
+  onRowClick?: (row: TData) => void
+  /** Fixa 1ª e última coluna (padrão true). */
+  pinnedEnds?: boolean
 }
 
 export function DataTable<TData extends object>({
@@ -49,6 +58,8 @@ export function DataTable<TData extends object>({
   emptyMessage = "Nenhum registro encontrado.",
   initialPageSize = 10,
   resizable = true,
+  onRowClick,
+  pinnedEnds = true,
 }: DataTableProps<TData>) {
   const [sorting, setSorting] = React.useState<SortingState>([])
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
@@ -60,13 +71,26 @@ export function DataTable<TData extends object>({
     pageSize: initialPageSize,
   })
 
+  const columnPinning = React.useMemo(() => {
+    if (!pinnedEnds || columns.length === 0) return { left: [], right: [] }
+    const left = columnId(columns[0])
+    const right =
+      columns.length > 1 ? columnId(columns[columns.length - 1]) : undefined
+    return {
+      left: left ? [left] : [],
+      right: right ? [right] : [],
+    }
+  }, [columns, pinnedEnds])
+
   const table = useReactTable({
     data,
     columns,
     getRowId,
     enableColumnResizing: true,
     columnResizeMode: "onChange",
+    enableColumnPinning: pinnedEnds,
     defaultColumn: { minSize: 60 },
+    initialState: { columnPinning },
     state: { sorting, columnFilters, globalFilter, pagination },
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
@@ -86,9 +110,11 @@ export function DataTable<TData extends object>({
       recordCount={table.getFilteredRowModel().rows.length}
       isLoading={isLoading}
       emptyMessage={emptyMessage}
+      onRowClick={onRowClick}
       tableLayout={{
         columnsResizable: resizable,
         columnsResizeMode: "onChange",
+        columnsPinnable: pinnedEnds,
         width: resizable ? "fixed" : "auto",
         headerBorder: false,
       }}

@@ -1,55 +1,24 @@
 "use client"
 
+import * as React from "react"
 import type { ColumnDef } from "@tanstack/react-table"
-import { toast } from "sonner"
 
 import { DataGridColumnHeader } from "@/components/reui/data-grid/data-grid-column-header"
 import { DataTableRowActions } from "@/components/data-table/data-table-row-actions"
-import { cn } from "@/lib/utils"
-import type { Contract, ContractStatus } from "@/lib/contracts"
-
-type DisplayStatus = ContractStatus | "A_VENCER"
-
-const STATUS_LABEL: Record<DisplayStatus, string> = {
-  VIGENTE: "Vigente",
-  A_VENCER: "A vencer",
-  ENCERRADO: "Encerrado",
-  EXPIRADO: "Expirado",
-}
-
-const STATUS_STYLE: Record<DisplayStatus, string> = {
-  VIGENTE: "bg-success/15 text-success",
-  A_VENCER: "bg-warning/15 text-warning",
-  ENCERRADO: "bg-muted text-muted-foreground",
-  EXPIRADO: "bg-destructive/15 text-destructive",
-}
-
-/** Status exibido: "A vencer" quando vigente e a ≤60 dias do vencimento. */
-function getDisplayStatus(c: Contract): DisplayStatus {
-  if (
-    c.status === "VIGENTE" &&
-    !c.isExpired &&
-    c.daysRemaining > 0 &&
-    c.daysRemaining <= 60
-  ) {
-    return "A_VENCER"
-  }
-  return c.status
-}
-
-function StatusBadge({ status }: { status: DisplayStatus }) {
-  return (
-    <span
-      className={cn(
-        "inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-medium",
-        STATUS_STYLE[status]
-      )}
-    >
-      <span className="size-1.5 rounded-full bg-current" />
-      {STATUS_LABEL[status]}
-    </span>
-  )
-}
+import { actionsColumn } from "@/components/data-table/columns"
+import { EditContractDialog } from "@/components/contracts/edit-contract-dialog"
+import {
+  ContractStatusBadge,
+  DaysRemainingBadge,
+  getDisplayStatus,
+  STATUS_LABEL,
+} from "@/components/contracts/contract-status-badge"
+import {
+  useArchiveContract,
+  useChangeContractStatus,
+  type Contract,
+} from "@/lib/contracts"
+import { useRouter } from "next/navigation"
 
 function formatDate(iso: string): string {
   const date = new Date(iso)
@@ -116,7 +85,9 @@ export const contractColumns: ColumnDef<Contract>[] = [
     header: ({ column }) => (
       <DataGridColumnHeader title="Status" column={column} />
     ),
-    cell: ({ row }) => <StatusBadge status={getDisplayStatus(row.original)} />,
+    cell: ({ row }) => (
+      <ContractStatusBadge status={getDisplayStatus(row.original)} />
+    ),
     filterFn: inArrayFilter,
     size: 110,
   },
@@ -153,11 +124,12 @@ export const contractColumns: ColumnDef<Contract>[] = [
       <DataGridColumnHeader title="Dias Rest." column={column} />
     ),
     cell: ({ row }) => (
-      <span className="block text-right font-mono tabular-nums">
-        {row.original.daysRemaining}
-      </span>
+      <DaysRemainingBadge
+        days={row.original.daysRemaining}
+        expired={row.original.isExpired}
+      />
     ),
-    size: 100,
+    size: 110,
   },
   {
     id: "hasAdjustment",
@@ -210,26 +182,44 @@ export const contractColumns: ColumnDef<Contract>[] = [
     ),
     size: 180,
   },
-  {
-    id: "actions",
-    header: "",
-    cell: ({ row }) => (
-      <DataTableRowActions
-        onEdit={() =>
-          toast.info("Editar contrato", {
-            description: row.original.contractNumber,
-          })
-        }
-        onArchive={() =>
-          toast.warning("Arquivar contrato", {
-            description: row.original.contractNumber,
-          })
-        }
-      />
-    ),
-    size: 60,
-    enableSorting: false,
-    enableHiding: false,
-    enableResizing: false,
-  },
+  actionsColumn(({ row }) => <ContractActionsCell contract={row.original} />),
 ]
+
+function ContractActionsCell({ contract }: { contract: Contract }) {
+  const router = useRouter()
+  const [editOpen, setEditOpen] = React.useState(false)
+  const archive = useArchiveContract()
+  const changeStatus = useChangeContractStatus()
+
+  return (
+    <>
+      <DataTableRowActions
+        entityLabel="contrato"
+        onDetails={() =>
+          router.push(
+            `/dashboard/contratos/continuados/relacao-contratos/${contract.contractId}`
+          )
+        }
+        onEdit={() => setEditOpen(true)}
+        onChangeStatus={(status) =>
+          changeStatus.mutateAsync({
+            contractId: contract.contractId,
+            status,
+          })
+        }
+        currentStatus={contract.status}
+        history={{
+          entity: "contract",
+          recordId: contract.contractId,
+          subtitle: `Nº ${contract.contractNumber} · ${contract.company}`,
+        }}
+        onArchive={() => archive.mutateAsync(contract.contractId)}
+      />
+      <EditContractDialog
+        contract={contract}
+        open={editOpen}
+        onOpenChange={setEditOpen}
+      />
+    </>
+  )
+}

@@ -16,7 +16,7 @@ import { cn } from "@/lib/utils"
 export interface FormDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  trigger: React.ReactNode
+  trigger?: React.ReactNode
   title: string
   formId: string
   onSubmit: React.FormEventHandler<HTMLFormElement>
@@ -44,7 +44,7 @@ export function FormDialog({
 }: FormDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogTrigger asChild>{trigger}</DialogTrigger>
+      {trigger ? <DialogTrigger asChild>{trigger}</DialogTrigger> : null}
       <DialogContent
         className={cn(
           "flex h-140 w-220 max-w-[95vw] flex-col p-12 sm:max-w-[95vw]",

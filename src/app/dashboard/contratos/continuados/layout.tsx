@@ -12,7 +12,6 @@ const BASE = "/dashboard/contratos/continuados"
 const estados = (prefix: string): SubNavItem[] => [
   { title: "Todos", url: `${prefix}/todos` },
   { title: "Arquivados", url: `${prefix}/arquivados` },
-  { title: "Histórico", url: `${prefix}/historico` },
 ]
 
 const navItems: SubNavItem[] = [

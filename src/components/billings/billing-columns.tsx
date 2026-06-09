@@ -1,11 +1,11 @@
 "use client"
 
 import type { ColumnDef } from "@tanstack/react-table"
-import { toast } from "sonner"
 
 import { DataGridColumnHeader } from "@/components/reui/data-grid/data-grid-column-header"
 import { DataTableRowActions } from "@/components/data-table/data-table-row-actions"
-import type { Billing } from "@/lib/billings"
+import { actionsColumn } from "@/components/data-table/columns"
+import { useArchiveBilling, type Billing } from "@/lib/billings"
 
 export interface BillingColumnsOptions {
   /** contractId -> número do contrato (ex.: "2333/2026"). */
@@ -165,27 +165,21 @@ export function billingColumns({
       ),
       size: 150,
     },
-    {
-      id: "actions",
-      header: "",
-      cell: ({ row }) => (
-        <DataTableRowActions
-          onEdit={() =>
-            toast.info("Editar faturamento", {
-              description: row.original.period,
-            })
-          }
-          onArchive={() =>
-            toast.warning("Arquivar faturamento", {
-              description: row.original.period,
-            })
-          }
-        />
-      ),
-      size: 60,
-      enableSorting: false,
-      enableHiding: false,
-      enableResizing: false,
-    },
+    actionsColumn(({ row }) => <BillingActionsCell billing={row.original} />),
   ]
+}
+
+function BillingActionsCell({ billing }: { billing: Billing }) {
+  const archive = useArchiveBilling()
+  return (
+    <DataTableRowActions
+      entityLabel="faturamento"
+      history={{
+        entity: "billing",
+        recordId: billing.billingId,
+        subtitle: `Competência ${billing.period} · ${billing.contractedCompany}`,
+      }}
+      onArchive={() => archive.mutateAsync(billing.billingId)}
+    />
+  )
 }

@@ -72,7 +72,33 @@ export function createReinforcement(
   })
 }
 
+export function archiveReinforcement(reinforcementId: string): Promise<unknown> {
+  return apiFetch(`/reinforcements/${reinforcementId}`, { method: "DELETE" })
+}
+
+export function listArchivedReinforcements({
+  page = 1,
+  pageSize = 20,
+}: ListReinforcementsParams = {}): Promise<ListReinforcementsResponse> {
+  const params = new URLSearchParams({
+    page: String(page),
+    pageSize: String(pageSize),
+  })
+  return apiFetch<ListReinforcementsResponse>(
+    `/reinforcements/archived?${params.toString()}`
+  )
+}
+
+export function unarchiveReinforcement(
+  reinforcementId: string
+): Promise<unknown> {
+  return apiFetch(`/reinforcements/${reinforcementId}/unarchive`, {
+    method: "POST",
+  })
+}
+
 export const reinforcementsKey = ["reinforcements"] as const
+export const reinforcementsArchivedKey = ["reinforcements", "archived"] as const
 
 export function useReinforcements(page: number, pageSize: number) {
   return useQuery({
@@ -89,6 +115,36 @@ export function useCreateReinforcement() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: reinforcementsKey })
       // o reforço altera o saldo/soma do empenho
+      queryClient.invalidateQueries({ queryKey: commitmentsKey })
+    },
+  })
+}
+
+export function useArchiveReinforcement() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: archiveReinforcement,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: reinforcementsKey })
+      queryClient.invalidateQueries({ queryKey: commitmentsKey })
+    },
+  })
+}
+
+export function useArchivedReinforcements(page: number, pageSize: number) {
+  return useQuery({
+    queryKey: [...reinforcementsArchivedKey, page, pageSize],
+    queryFn: () => listArchivedReinforcements({ page, pageSize }),
+    placeholderData: (prev) => prev,
+  })
+}
+
+export function useUnarchiveReinforcement() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: unarchiveReinforcement,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: reinforcementsKey })
       queryClient.invalidateQueries({ queryKey: commitmentsKey })
     },
   })

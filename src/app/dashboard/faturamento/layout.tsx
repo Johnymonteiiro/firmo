@@ -13,7 +13,6 @@ const navItems: SubNavItem[] = [
     items: [
       { title: "Todos", url: `${BASE}/todos` },
       { title: "Arquivados", url: `${BASE}/arquivados` },
-      { title: "Histórico", url: `${BASE}/historico` },
     ],
   },
 ]
