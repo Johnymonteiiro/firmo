@@ -79,8 +79,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                   <HugeiconsIcon icon={CommandIcon} strokeWidth={1.6} className="size-4" />
                 </div>
                 <div className="grid flex-1 text-left leading-tight">
-                  <span className="truncate text-md font-semibold tracking-tight">Firmo</span>
-                  <span className="truncate text-2xs uppercase tracking-[0.04em] text-muted-foreground">UFSC</span>
+                  <span className="truncate text-md font-semibold tracking-tight">GFC</span>
+                  <span className="truncate text-2xs uppercase tracking-[0.04em] text-muted-foreground">Gestão e Faturamento de Contratos</span>
                 </div>
               </a>
             </SidebarMenuButton>

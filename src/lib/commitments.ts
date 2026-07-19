@@ -12,6 +12,13 @@ import {
   sneSchema,
 } from "@/lib/validation"
 
+/**
+ * Status derivado do empenho (calculado pelo backend, não persistido):
+ * ENCERRADO (saldo zerado) → VIGENTE (ano da SNE = atual) → SALDO (ano
+ * anterior com saldo > 0).
+ */
+export type CommitmentStatus = "VIGENTE" | "SALDO" | "ENCERRADO"
+
 /** Espelha o CommitmentResponseDto (empenho) do backend. */
 export interface Commitment {
   commitmentId: string
@@ -23,6 +30,11 @@ export interface Commitment {
   siafi: string
   initialValue: string
   currentBalance: string
+  /** Somatório dos reforços ativos (formatado em BRL pelo backend). */
+  reinforcementValue: string
+  status: CommitmentStatus
+  /** Valor Economizado calculado: (inicial + reajuste do contrato) − faturado. */
+  savedAmount: string
   createdAt: string
   updatedAt: string
   deletedAt: string | null

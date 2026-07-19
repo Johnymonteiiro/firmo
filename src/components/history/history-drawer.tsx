@@ -9,6 +9,7 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet"
 import { Skeleton } from "@/components/ui/skeleton"
+import { CommitmentReinforcementsPanel } from "@/components/reinforcements/commitment-reinforcements-panel"
 import { cn } from "@/lib/utils"
 import {
   useHistory,
@@ -35,6 +36,14 @@ const OP_META: Record<
     badge: "bg-destructive/15 text-destructive",
     dot: "bg-destructive",
   },
+}
+
+/** Origem do evento — usado no histórico unificado (empenho + reforços). */
+const TABLE_LABEL: Record<string, string> = {
+  rel_contrato: "Contrato",
+  rel_empenho: "Empenho",
+  reforco_empenho: "Reforço",
+  faturamento: "Faturamento",
 }
 
 type Tab = "all" | "update" | "insert"
@@ -174,6 +183,15 @@ export function HistoryDrawer({
         </SheetHeader>
 
         <div className="flex-1 overflow-y-auto p-5">
+          {/* Histórico unificado do empenho: reforços ativos com ação Anular. */}
+          {entity === "commitment" && recordId ? (
+            <div className="mb-5">
+              <p className="mb-2 text-2xs font-semibold uppercase tracking-[0.07em] text-muted-foreground">
+                Reforços ativos
+              </p>
+              <CommitmentReinforcementsPanel commitmentId={recordId} />
+            </div>
+          ) : null}
           {isLoading ? (
             <div className="space-y-3">
               {Array.from({ length: 4 }).map((_, i) => (
@@ -199,7 +217,11 @@ export function HistoryDrawer({
                   </p>
                   <ol className="relative ml-1 space-y-4 border-l border-border pl-5">
                     {g.items.map((e) => (
-                      <Event key={e.auditLogId} entry={e} />
+                      <Event
+                        key={e.auditLogId}
+                        entry={e}
+                        showOrigin={entity === "commitment"}
+                      />
                     ))}
                   </ol>
                 </div>
@@ -212,11 +234,21 @@ export function HistoryDrawer({
   )
 }
 
-function Event({ entry }: { entry: AuditLog }) {
-  const meta = OP_META[entry.operacao] ?? {
+function Event({
+  entry,
+  showOrigin = false,
+}: {
+  entry: AuditLog
+  showOrigin?: boolean
+}) {
+  let meta = OP_META[entry.operacao] ?? {
     label: entry.operacao,
     badge: "bg-muted text-muted-foreground",
     dot: "bg-muted-foreground",
+  }
+  // Soft delete de reforço é anulação (definitiva), não arquivamento.
+  if (entry.operacao === "DELETE" && entry.tabela === "reforco_empenho") {
+    meta = { ...meta, label: "Anulado" }
   }
 
   return (
@@ -236,6 +268,11 @@ function Event({ entry }: { entry: AuditLog }) {
         >
           {meta.label}
         </span>
+        {showOrigin && TABLE_LABEL[entry.tabela] ? (
+          <span className="inline-flex items-center rounded-md bg-secondary px-2 py-0.5 font-medium text-secondary-foreground">
+            {TABLE_LABEL[entry.tabela]}
+          </span>
+        ) : null}
         <span className="font-mono text-muted-foreground tabular-nums">
           {dateTime(entry.data)}
         </span>

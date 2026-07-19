@@ -6,28 +6,29 @@ import {
 import { z } from "zod"
 import { apiFetch } from "@/lib/api"
 import { commitmentsKey } from "@/lib/commitments"
-import { decimalSchema, processSchema } from "@/lib/validation"
+import { decimalSchema } from "@/lib/validation"
 
-/** Espelha o ReinforcementResponseDto (reforço) do backend. */
+/**
+ * Espelha o ReinforcementResponseDto (reforço) do backend.
+ * `processNumber` é HERDADO do empenho pai (o reforço não tem processo próprio).
+ */
 export interface Reinforcement {
   reinforcementId: string
   commitmentId: string
   value: string
   processNumber: string
   reinforcementDate: string
-  reinforcedBy: string
   createdAt: string
   updatedAt: string
+  /** Data da anulação (null quando ativo). */
   deletedAt: string | null
 }
 
-/** Validação do form de criação de reforço. */
+/** Validação do form de criação de reforço (sem processo nem responsável). */
 export const createReinforcementSchema = z.object({
   commitmentId: z.string().min(1, "Selecione o empenho"),
   value: decimalSchema(),
-  processNumber: processSchema(),
   reinforcementDate: z.string().min(1, "Informe a data do reforço"),
-  reinforcedBy: z.string().trim().min(1, "Informe quem reforçou"),
 })
 
 export type CreateReinforcementFormValues = z.infer<
@@ -72,38 +73,24 @@ export function createReinforcement(
   })
 }
 
-export function archiveReinforcement(reinforcementId: string): Promise<unknown> {
+/**
+ * Anula o reforço — DEFINITIVO, sem desfazer. O backend só aceita quando o
+ * ano do reforço é anterior ao ano atual (senão 422).
+ */
+export function annulReinforcement(reinforcementId: string): Promise<unknown> {
   return apiFetch(`/reinforcements/${reinforcementId}`, { method: "DELETE" })
 }
 
-export function listArchivedReinforcements({
-  page = 1,
-  pageSize = 20,
-}: ListReinforcementsParams = {}): Promise<ListReinforcementsResponse> {
-  const params = new URLSearchParams({
-    page: String(page),
-    pageSize: String(pageSize),
-  })
-  return apiFetch<ListReinforcementsResponse>(
-    `/reinforcements/archived?${params.toString()}`
-  )
-}
-
-export function unarchiveReinforcement(
-  reinforcementId: string
-): Promise<unknown> {
-  return apiFetch(`/reinforcements/${reinforcementId}/unarchive`, {
-    method: "POST",
-  })
-}
-
 export const reinforcementsKey = ["reinforcements"] as const
-export const reinforcementsArchivedKey = ["reinforcements", "archived"] as const
 
-export function useReinforcements(page: number, pageSize: number) {
+export function useReinforcements(
+  page: number,
+  pageSize: number,
+  commitmentId?: string
+) {
   return useQuery({
-    queryKey: [...reinforcementsKey, page, pageSize],
-    queryFn: () => listReinforcements({ page, pageSize }),
+    queryKey: [...reinforcementsKey, page, pageSize, commitmentId ?? "all"],
+    queryFn: () => listReinforcements({ page, pageSize, commitmentId }),
     placeholderData: (prev) => prev,
   })
 }
@@ -120,29 +107,10 @@ export function useCreateReinforcement() {
   })
 }
 
-export function useArchiveReinforcement() {
+export function useAnnulReinforcement() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: archiveReinforcement,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: reinforcementsKey })
-      queryClient.invalidateQueries({ queryKey: commitmentsKey })
-    },
-  })
-}
-
-export function useArchivedReinforcements(page: number, pageSize: number) {
-  return useQuery({
-    queryKey: [...reinforcementsArchivedKey, page, pageSize],
-    queryFn: () => listArchivedReinforcements({ page, pageSize }),
-    placeholderData: (prev) => prev,
-  })
-}
-
-export function useUnarchiveReinforcement() {
-  const queryClient = useQueryClient()
-  return useMutation({
-    mutationFn: unarchiveReinforcement,
+    mutationFn: annulReinforcement,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: reinforcementsKey })
       queryClient.invalidateQueries({ queryKey: commitmentsKey })

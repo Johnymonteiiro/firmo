@@ -28,10 +28,8 @@ const navItems: SubNavItem[] = [
         title: "Empenhos",
         items: estados(`${BASE}/empenhos-saldos/empenhos`),
       },
-      {
-        title: "Reforços",
-        items: estados(`${BASE}/empenhos-saldos/reforcos`),
-      },
+      // "Reforços" saiu da navegação: criação passa a ser pela ação
+      // "Adicionar Reforço" na linha do empenho, e o histórico é unificado.
     ],
   },
 ]

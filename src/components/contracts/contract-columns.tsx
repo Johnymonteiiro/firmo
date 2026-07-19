@@ -51,6 +51,19 @@ export const contractColumns: ColumnDef<Contract>[] = [
     size: 110,
   },
   {
+    accessorKey: "processNumber",
+    id: "processNumber",
+    header: ({ column }) => (
+      <DataGridColumnHeader title="Processo" column={column} />
+    ),
+    cell: ({ row }) => (
+      <span className="font-mono tabular-nums">
+        {row.original.processNumber}
+      </span>
+    ),
+    size: 190,
+  },
+  {
     accessorKey: "company",
     id: "company",
     header: ({ column }) => (

@@ -1,3 +1,7 @@
+# GFC — Gestão e Faturamento de Contratos (Frontend)
+
+Dashboard Next.js do sistema **GFC** (Gestão e Faturamento de Contratos): contratos continuados, empenhos, reforços e faturamentos, consumindo a GFC API (NestJS).
+
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
 ## Getting Started

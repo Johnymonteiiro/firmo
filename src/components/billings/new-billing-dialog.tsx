@@ -11,6 +11,7 @@ import { Combobox } from "@/components/form/combobox"
 import { CurrencyInput } from "@/components/form/currency-input"
 import { MonthPicker } from "@/components/form/month-picker"
 import { FormDialog } from "@/components/form/form-dialog"
+import { ProcessInput } from "@/components/form/process-input"
 import { Field, SectionTitle } from "@/components/form/form-field"
 import { ApiError } from "@/lib/api"
 import {
@@ -30,7 +31,6 @@ const EMPTY_FORM: CreateBillingFormValues = {
   billedAmount1: "",
   sneDeduction2: "",
   billedAmount2: "",
-  savedAmount: "",
   paymentProcessNumber: "",
   paymentRequestNumber: "",
   notes: "",
@@ -64,13 +64,27 @@ export function NewBillingDialog() {
 
   // SNEs de desconto = empenhos (filtrados pelo contrato selecionado).
   const selectedContractId = watch("contractId")
-  const sneOptions = (commitments?.data ?? [])
-    .filter((c) => !selectedContractId || c.contractId === selectedContractId)
-    .map((c) => ({
-      value: c.sne,
-      label: c.sne,
-      description: c.contractedCompany,
-    }))
+  const contractCommitments = (commitments?.data ?? []).filter(
+    (c) => !selectedContractId || c.contractId === selectedContractId
+  )
+  const sneOptions = contractCommitments.map((c) => ({
+    value: c.sne,
+    label: c.sne,
+    description: c.contractedCompany,
+  }))
+
+  // Regra GFC (alerta, não bloqueio): ao faturar numa SNE do ano corrente,
+  // avisar se o contrato ainda tem empenho antigo com saldo (status SALDO).
+  const selectedSnes = [watch("sneDeduction1"), watch("sneDeduction2")].filter(
+    Boolean
+  )
+  const usingCurrentSne = selectedSnes.some(
+    (sne) => contractCommitments.find((c) => c.sne === sne)?.status === "VIGENTE"
+  )
+  const oldSnesWithBalance = contractCommitments.filter(
+    (c) => c.status === "SALDO" && !selectedSnes.includes(c.sne)
+  )
+  const showOldSneWarning = usingCurrentSne && oldSnesWithBalance.length > 0
 
   function onSubmit(values: CreateBillingFormValues) {
     createBilling.mutate(
@@ -81,7 +95,6 @@ export function NewBillingDialog() {
         billedAmount1: toNull(values.billedAmount1),
         sneDeduction2: toNull(values.sneDeduction2),
         billedAmount2: toNull(values.billedAmount2),
-        savedAmount: toNull(values.savedAmount),
         paymentProcessNumber: toNull(values.paymentProcessNumber),
         paymentRequestNumber: toNull(values.paymentRequestNumber),
         notes: toNull(values.notes),
@@ -229,21 +242,22 @@ export function NewBillingDialog() {
         />
       </Field>
 
+      {showOldSneWarning ? (
+        <div className="col-span-2 rounded-lg border border-warning/40 bg-warning/10 px-3 py-2.5 text-sm text-warning">
+          <p className="font-medium">SNE antiga com saldo disponível</p>
+          <p className="mt-0.5 text-warning/90">
+            Antes de consumir a SNE atual, considere usar o saldo remanescente
+            de:{" "}
+            {oldSnesWithBalance
+              .map((c) => `${c.sne} (${c.currentBalance})`)
+              .join(", ")}
+            .
+          </p>
+        </div>
+      ) : null}
+
+      {/* "Economia" (Valor Economizado) agora é calculada pelo sistema. */}
       <SectionTitle>Pagamento</SectionTitle>
-      <Field label="Economia (R$)" error={errors.savedAmount?.message}>
-        <Controller
-          control={control}
-          name="savedAmount"
-          render={({ field }) => (
-            <CurrencyInput
-              value={field.value}
-              onChange={field.onChange}
-              onBlur={field.onBlur}
-              aria-invalid={!!errors.savedAmount}
-            />
-          )}
-        />
-      </Field>
       <Field
         label="Solicitação de Pagamento"
         error={errors.paymentRequestNumber?.message}
@@ -272,11 +286,10 @@ export function NewBillingDialog() {
           control={control}
           name="paymentProcessNumber"
           render={({ field }) => (
-            <MaskedInput
-              mask="00000.000000/0000-00"
-              placeholder="23080.003729/2026-38"
+            <ProcessInput
+              placeholder="003729/2026-38"
               value={field.value}
-              onAccept={(value) => field.onChange(value)}
+              onChange={field.onChange}
               onBlur={field.onBlur}
               aria-invalid={!!errors.paymentProcessNumber}
             />

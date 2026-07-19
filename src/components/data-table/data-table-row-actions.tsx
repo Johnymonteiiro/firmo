@@ -45,6 +45,15 @@ export interface DataTableRowActionsProps {
   history?: { entity: AuditEntity; recordId: string; subtitle?: string }
   /** Executa o arquivamento (DELETE). */
   onArchive: () => Promise<unknown>
+  /** Itens extras (DropdownMenuItem) renderizados no topo do menu. */
+  extraActions?: React.ReactNode
+  /** Rótulo/comportamento da ação destrutiva (default: "Arquivar"). */
+  destructiveAction?: {
+    label: string
+    confirmTitle: string
+    confirmDescription: string
+    successToast: string
+  }
 }
 
 const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1)
@@ -58,6 +67,8 @@ export function DataTableRowActions({
   currentStatus,
   history,
   onArchive,
+  extraActions,
+  destructiveAction,
 }: DataTableRowActionsProps) {
   const [confirmOpen, setConfirmOpen] = React.useState(false)
   const [isArchiving, setIsArchiving] = React.useState(false)
@@ -79,14 +90,17 @@ export function DataTableRowActions({
     setIsArchiving(true)
     Promise.resolve(onArchive())
       .then(() => {
-        toast.success(`${capitalize(entityLabel)} arquivado.`)
+        toast.success(
+          destructiveAction?.successToast ??
+            `${capitalize(entityLabel)} arquivado.`
+        )
         setConfirmOpen(false)
       })
       .catch((err) => {
         toast.error(
           err instanceof ApiError
             ? err.message
-            : `Não foi possível arquivar o ${entityLabel}.`
+            : `Não foi possível concluir a ação no ${entityLabel}.`
         )
       })
       .finally(() => setIsArchiving(false))
@@ -102,6 +116,12 @@ export function DataTableRowActions({
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent side="bottom" align="end" className="w-48">
+          {extraActions ? (
+            <>
+              {extraActions}
+              <DropdownMenuSeparator />
+            </>
+          ) : null}
           {onDetails ? (
             <>
               <DropdownMenuItem onClick={onDetails}>
@@ -164,7 +184,7 @@ export function DataTableRowActions({
             onClick={() => setConfirmOpen(true)}
           >
             <HugeiconsIcon icon={Archive02Icon} strokeWidth={2} />
-            Arquivar
+            {destructiveAction?.label ?? "Arquivar"}
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
@@ -172,9 +192,12 @@ export function DataTableRowActions({
       <ConfirmDialog
         open={confirmOpen}
         onOpenChange={setConfirmOpen}
-        title={`Arquivar ${entityLabel}?`}
-        description="O registro vai para os arquivados e pode ser restaurado depois."
-        confirmLabel="Arquivar"
+        title={destructiveAction?.confirmTitle ?? `Arquivar ${entityLabel}?`}
+        description={
+          destructiveAction?.confirmDescription ??
+          "O registro vai para os arquivados e pode ser restaurado depois."
+        }
+        confirmLabel={destructiveAction?.label ?? "Arquivar"}
         destructive
         isPending={isArchiving}
         onConfirm={handleArchive}

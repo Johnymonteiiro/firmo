@@ -1,23 +1,26 @@
 "use client"
 
+import * as React from "react"
 import type { ColumnDef } from "@tanstack/react-table"
 
 import { DataGridColumnHeader } from "@/components/reui/data-grid/data-grid-column-header"
 import { DataTableRowActions } from "@/components/data-table/data-table-row-actions"
 import { actionsColumn } from "@/components/data-table/columns"
+import { CommitmentStatusBadge } from "@/components/commitments/commitment-status-badge"
+import { NewReinforcementDialog } from "@/components/reinforcements/new-reinforcement-dialog"
+import { DropdownMenuItem } from "@/components/ui/dropdown-menu"
 import { formatDate } from "@/lib/format"
 import { useArchiveCommitment, type Commitment } from "@/lib/commitments"
+import { HugeiconsIcon } from "@hugeicons/react"
+import { Add01Icon } from "@hugeicons/core-free-icons"
 
 export interface CommitmentColumnsOptions {
-  /** contractId -> número do contrato (ex.: "2333/2026"). */
+  /** contractId -> número do contrato (ex.: "0097/2026"). */
   getContractNumber: (contractId: string) => string
-  /** commitmentId -> soma dos reforços formatada (BRL). */
-  getReinforcementsTotal: (commitmentId: string) => string
 }
 
 export function commitmentColumns({
   getContractNumber,
-  getReinforcementsTotal,
 }: CommitmentColumnsOptions): ColumnDef<Commitment>[] {
   return [
     {
@@ -43,6 +46,15 @@ export function commitmentColumns({
         <span className="font-mono tabular-nums">{row.original.sne}</span>
       ),
       size: 120,
+    },
+    {
+      accessorKey: "status",
+      id: "status",
+      header: ({ column }) => (
+        <DataGridColumnHeader title="Status" column={column} />
+      ),
+      cell: ({ row }) => <CommitmentStatusBadge status={row.original.status} />,
+      size: 110,
     },
     {
       accessorKey: "contractedCompany",
@@ -103,14 +115,14 @@ export function commitmentColumns({
       size: 150,
     },
     {
-      id: "reinforcementsTotal",
-      accessorFn: (row) => getReinforcementsTotal(row.commitmentId),
+      accessorKey: "reinforcementValue",
+      id: "reinforcementValue",
       header: ({ column }) => (
         <DataGridColumnHeader title="Reforços" column={column} />
       ),
       cell: ({ row }) => (
         <span className="block text-right font-mono tabular-nums">
-          {getReinforcementsTotal(row.original.commitmentId)}
+          {row.original.reinforcementValue}
         </span>
       ),
       size: 150,
@@ -128,6 +140,19 @@ export function commitmentColumns({
       ),
       size: 150,
     },
+    {
+      accessorKey: "savedAmount",
+      id: "savedAmount",
+      header: ({ column }) => (
+        <DataGridColumnHeader title="Valor Economizado" column={column} />
+      ),
+      cell: ({ row }) => (
+        <span className="block text-right font-mono tabular-nums">
+          {row.original.savedAmount}
+        </span>
+      ),
+      size: 160,
+    },
     actionsColumn(({ row }) => (
       <CommitmentActionsCell commitment={row.original} />
     )),
@@ -136,15 +161,34 @@ export function commitmentColumns({
 
 function CommitmentActionsCell({ commitment }: { commitment: Commitment }) {
   const archive = useArchiveCommitment()
+  const [reinforceOpen, setReinforceOpen] = React.useState(false)
+
   return (
-    <DataTableRowActions
-      entityLabel="empenho"
-      history={{
-        entity: "commitment",
-        recordId: commitment.commitmentId,
-        subtitle: `SNE ${commitment.sne} · ${commitment.contractedCompany}`,
-      }}
-      onArchive={() => archive.mutateAsync(commitment.commitmentId)}
-    />
+    <>
+      <DataTableRowActions
+        entityLabel="empenho"
+        extraActions={
+          <DropdownMenuItem onClick={() => setReinforceOpen(true)}>
+            <HugeiconsIcon icon={Add01Icon} strokeWidth={2} />
+            Adicionar Reforço
+          </DropdownMenuItem>
+        }
+        history={{
+          entity: "commitment",
+          recordId: commitment.commitmentId,
+          subtitle: `SNE ${commitment.sne} · ${commitment.contractedCompany}`,
+        }}
+        onArchive={() => archive.mutateAsync(commitment.commitmentId)}
+      />
+      {/* Dialog controlado com o empenho da linha travado (processo herdado).
+          Montado sob demanda — evita instanciar um form por linha da tabela. */}
+      {reinforceOpen ? (
+        <NewReinforcementDialog
+          commitment={commitment}
+          open={reinforceOpen}
+          onOpenChange={setReinforceOpen}
+        />
+      ) : null}
+    </>
   )
 }

@@ -2,18 +2,16 @@ import { z } from "zod"
 
 /**
  * Validadores compartilhados que espelham os formatos + ranges de ano do
- * backend (value objects). Os ranges são dinâmicos: ano atual (+1 conforme o
- * campo), avaliados na carga do módulo.
+ * backend (value objects). Regras GFC: nº de contrato com 4 dígitos, processo
+ * com prefixo fixo 23080 e teto de ano em 2100.
  */
-const THIS_YEAR = new Date().getFullYear()
-const MAX_YEAR = THIS_YEAR + 1 // SNE, SIAFI, solicitação, período, contrato
-const MAX_YEAR_PROCESS = THIS_YEAR // processo: sem +1
+const MAX_YEAR = 2100
 
 const RE = {
   sne: /^\d{9}$/, // {ano}{seq:5d}
   siafi: /^\d{4}NE\d{6}$/,
-  process: /^\d{5}\.\d{6}\/\d{4}-\d{2}$/,
-  contract: /^\d+\/\d{4}$/,
+  process: /^23080\.\d{6}\/\d{4}-\d{2}$/, // prefixo 23080 fixo (código do órgão)
+  contract: /^\d{4}\/\d{4}$/, // {número:4d}/{ano}
   period: /^\d{4}-(0[1-9]|1[0-2])$/,
   decimal: /^\d+(\.\d{1,2})?$/,
 }
@@ -50,15 +48,15 @@ export function processSchema() {
     .string()
     .regex(RE.process, "Processo: formato esperado 23080.003729/2026-38.")
     .refine(
-      (v) => yearAfterSlash(v) >= 1990 && yearAfterSlash(v) <= MAX_YEAR_PROCESS,
-      `Processo: ano inválido — esperado entre 1990 e ${MAX_YEAR_PROCESS}.`
+      (v) => yearAfterSlash(v) >= 1990 && yearAfterSlash(v) <= MAX_YEAR,
+      `Processo: ano inválido — esperado entre 1990 e ${MAX_YEAR}.`
     )
 }
 
 export function contractNumberSchema() {
   return z
     .string()
-    .regex(RE.contract, "Formato esperado: 97/2023.")
+    .regex(RE.contract, "Formato esperado: 0097/2023 (4 dígitos + ano).")
     .refine((v) => numberBeforeSlash(v) > 0, "O número deve ser maior que zero.")
     .refine(
       (v) => yearAfterSlash(v) >= 2000 && yearAfterSlash(v) <= MAX_YEAR,
@@ -103,8 +101,8 @@ export function optionalProcess() {
         v === "" ||
         (RE.process.test(v) &&
           yearAfterSlash(v) >= 1990 &&
-          yearAfterSlash(v) <= MAX_YEAR_PROCESS),
-      `Processo: formato 23080.003729/2026-38 e ano entre 1990 e ${MAX_YEAR_PROCESS}.`
+          yearAfterSlash(v) <= MAX_YEAR),
+      `Processo: formato 23080.003729/2026-38 e ano entre 1990 e ${MAX_YEAR}.`
     )
 }
 

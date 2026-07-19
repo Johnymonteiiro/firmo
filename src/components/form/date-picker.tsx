@@ -76,6 +76,9 @@ export function DatePicker({
           selected={date}
           defaultMonth={date}
           captionLayout="dropdown"
+          // Sem teto no ano corrente: espelha o range aceito pelo backend.
+          startMonth={new Date(1990, 0)}
+          endMonth={new Date(2100, 11)}
           locale={ptBR}
           onSelect={(d) => {
             if (d) {

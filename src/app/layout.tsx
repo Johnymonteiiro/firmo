@@ -17,8 +17,8 @@ const ibmPlexMono = IBM_Plex_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Firmo — Painel de Contratos",
-  description: "Gestão de contratos — UFSC",
+  title: "GFC — Gestão e Faturamento de Contratos",
+  description: "Gestão e faturamento de contratos — UFSC",
 };
 
 export default function RootLayout({

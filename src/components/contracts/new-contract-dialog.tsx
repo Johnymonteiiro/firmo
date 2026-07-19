@@ -10,6 +10,7 @@ import { MaskedInput } from "@/components/ui/masked-input"
 import { Textarea } from "@/components/ui/textarea"
 import { DatePicker } from "@/components/form/date-picker"
 import { FormDialog } from "@/components/form/form-dialog"
+import { ProcessInput } from "@/components/form/process-input"
 import { Field, SectionTitle } from "@/components/form/form-field"
 import { ApiError } from "@/lib/api"
 import {
@@ -102,8 +103,8 @@ export function NewContractDialog() {
           name="contractNumber"
           render={({ field }) => (
             <MaskedInput
-              mask="00/0000"
-              placeholder="97/2023"
+              mask="0000/0000"
+              placeholder="0097/2023"
               value={field.value}
               onAccept={(value) => field.onChange(value)}
               onBlur={field.onBlur}
@@ -118,11 +119,10 @@ export function NewContractDialog() {
           control={control}
           name="processNumber"
           render={({ field }) => (
-            <MaskedInput
-              mask="00000.000000/0000-00"
-              placeholder="23080.048126/2020-70"
+            <ProcessInput
+              placeholder="048126/2020-70"
               value={field.value}
-              onAccept={(value) => field.onChange(value)}
+              onChange={field.onChange}
               onBlur={field.onBlur}
               aria-invalid={!!errors.processNumber}
             />

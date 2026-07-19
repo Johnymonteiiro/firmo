@@ -9,6 +9,7 @@ import { MaskedInput } from "@/components/ui/masked-input"
 import { Combobox } from "@/components/form/combobox"
 import { DatePicker } from "@/components/form/date-picker"
 import { FormDialog } from "@/components/form/form-dialog"
+import { ProcessInput } from "@/components/form/process-input"
 import { Field, SectionTitle } from "@/components/form/form-field"
 import { ApiError } from "@/lib/api"
 import {
@@ -152,11 +153,10 @@ export function NewCommitmentDialog() {
           control={control}
           name="processNumber"
           render={({ field }) => (
-            <MaskedInput
-              mask="00000.000000/0000-00"
-              placeholder="23080.003729/2026-38"
+            <ProcessInput
+              placeholder="003729/2026-38"
               value={field.value}
-              onAccept={(value) => field.onChange(value)}
+              onChange={field.onChange}
               onBlur={field.onBlur}
               aria-invalid={!!errors.processNumber}
             />

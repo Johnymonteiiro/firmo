@@ -22,6 +22,7 @@ export interface Billing {
   sneDeduction2: string | null
   billedAmount1: string | null
   billedAmount2: string | null
+  /** Valor Economizado CALCULADO pelo backend (empenho da sneDeduction1). */
   savedAmount: string | null
   paymentProcessNumber: string | null
   paymentRequestNumber: string | null
@@ -38,7 +39,6 @@ export const createBillingSchema = z.object({
   billedAmount1: optionalDecimal(),
   sneDeduction2: optionalSne("SNE", 1990),
   billedAmount2: optionalDecimal(),
-  savedAmount: optionalDecimal(),
   paymentProcessNumber: optionalProcess(),
   paymentRequestNumber: optionalSne("Solicitação", 2000),
   notes: z.string().optional(),
@@ -53,7 +53,6 @@ export interface CreateBillingInput {
   billedAmount1?: string | null
   sneDeduction2?: string | null
   billedAmount2?: string | null
-  savedAmount?: string | null
   paymentProcessNumber?: string | null
   paymentRequestNumber?: string | null
   notes?: string | null
