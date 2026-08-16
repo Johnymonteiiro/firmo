@@ -3,6 +3,7 @@
 import * as React from "react"
 import Link from "next/link"
 
+import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import {
@@ -11,7 +12,7 @@ import {
 } from "@/components/contracts/contract-status-badge"
 import { EditContractDialog } from "@/components/contracts/edit-contract-dialog"
 import { HistoryDrawer } from "@/components/history/history-drawer"
-import { useContract } from "@/lib/contracts"
+import { isUnlinked, useContract, type ContractUserRef } from "@/lib/contracts"
 import { formatDate } from "@/lib/format"
 import { cn } from "@/lib/utils"
 import { HugeiconsIcon } from "@hugeicons/react"
@@ -99,7 +100,7 @@ export function ContractDetail({ contractId }: { contractId: string }) {
           mono
         />
         <Cell label="Valor mensal" value={contract.monthlyValue} mono />
-        <Cell label="Gestor" value={contract.manager} />
+        <Cell label="Gestor" value={<PersonRef person={contract.manager} />} />
       </div>
 
       {/* objeto + dados gerais */}
@@ -126,8 +127,14 @@ export function ContractDetail({ contractId }: { contractId: string }) {
               value={String(contract.daysRemaining)}
               mono
             />
-            <Row label="Fiscal Adm" value={contract.adminFiscal} />
-            <Row label="Fiscais Técnicos" value={contract.techFiscals} />
+            <Row
+              label="Fiscal Adm"
+              value={<PersonRef person={contract.adminFiscal} />}
+            />
+            <Row
+              label="Fiscais Técnicos"
+              value={<PersonList people={contract.techFiscals} />}
+            />
             <Row
               label="Ocorreu reajuste"
               value={contract.hasAdjustment === "SIM" ? "Sim" : "Não"}
@@ -164,6 +171,36 @@ export function ContractDetail({ contractId }: { contractId: string }) {
   )
 }
 
+/**
+ * Responsável do contrato. Sem vínculo com usuário cadastrado, só resta o
+ * texto legado — sinalizado para que a ausência não passe por dado normal.
+ */
+function PersonRef({ person }: { person: ContractUserRef }) {
+  if (isUnlinked(person)) {
+    return (
+      <span className="inline-flex flex-wrap items-center justify-end gap-1.5">
+        {person.name}
+        <Badge variant="secondary">sem vínculo</Badge>
+      </span>
+    )
+  }
+  return <>{person.name}</>
+}
+
+function PersonList({ people }: { people: ContractUserRef[] }) {
+  if (people.length === 0) return <>—</>
+  return (
+    <span className="inline-flex flex-wrap items-center justify-end gap-x-1.5 gap-y-1">
+      {people.map((person, index) => (
+        <React.Fragment key={person.userId ?? `legacy-${index}`}>
+          {index > 0 ? <span className="text-muted-foreground">·</span> : null}
+          <PersonRef person={person} />
+        </React.Fragment>
+      ))}
+    </span>
+  )
+}
+
 function Cell({
 
   label,
@@ -171,7 +208,7 @@ function Cell({
   mono,
 }: {
   label: string
-  value: string
+  value: React.ReactNode
   mono?: boolean
 }) {
   return (
@@ -209,7 +246,7 @@ function Row({
   mono,
 }: {
   label: string
-  value: string
+  value: React.ReactNode
   mono?: boolean
 }) {
   return (

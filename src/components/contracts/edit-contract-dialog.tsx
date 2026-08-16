@@ -10,27 +10,46 @@ import { CurrencyInput } from "@/components/form/currency-input"
 import { DatePicker } from "@/components/form/date-picker"
 import { FormDialog } from "@/components/form/form-dialog"
 import { Field, SectionTitle } from "@/components/form/form-field"
+import { UserMultiPicker, UserPicker } from "@/components/form/user-picker"
 import { ApiError } from "@/lib/api"
 import {
   updateContractSchema,
   useUpdateContract,
   type Contract,
   type UpdateContractFormValues,
+  type UpdateContractInput,
 } from "@/lib/contracts"
 import { parseBRL } from "@/lib/format"
+
+/** Mesma composição de fiscais técnicos, independente da ordem. */
+function sameIds(a: string[], b: string[]): boolean {
+  return a.length === b.length && [...a].sort().join() === [...b].sort().join()
+}
+
+/** IDs vinculados; vazio quando o contrato só tem o texto legado no papel. */
+function linkedTechFiscalIds(c: Contract): string[] {
+  return c.techFiscals
+    .map((ref) => ref.userId)
+    .filter((id): id is string => id !== null)
+}
 
 function toFormValues(c: Contract): UpdateContractFormValues {
   return {
     company: c.company,
     subject: c.subject,
-    manager: c.manager,
-    adminFiscal: c.adminFiscal,
-    techFiscals: c.techFiscals,
+    managerId: c.manager.userId ?? "",
+    adminFiscalId: c.adminFiscal.userId ?? "",
+    techFiscalIds: linkedTechFiscalIds(c),
     startDate: c.startDate?.slice(0, 10) ?? "",
     expiresAt: c.expiresAt?.slice(0, 10) ?? "",
     monthlyValue: parseBRL(c.monthlyValue).toFixed(2),
     notes: c.notes ?? "",
   }
+}
+
+/** Texto legado a exibir no picker enquanto o papel não tem vínculo. */
+function legacyLabel(refs: Contract["techFiscals"]): string | undefined {
+  return refs.length > 0 && refs[0].userId === null ? refs[0].name : undefined
 }
 
 export function EditContractDialog({
@@ -49,6 +68,7 @@ export function EditContractDialog({
     handleSubmit,
     control,
     reset,
+    setError,
     formState: { errors },
   } = useForm<UpdateContractFormValues>({
     resolver: standardSchemaResolver(updateContractSchema),
@@ -62,14 +82,41 @@ export function EditContractDialog({
   }, [open])
 
   function onSubmit(values: UpdateContractFormValues) {
+    const initial = toFormValues(contract)
+    const { managerId, adminFiscalId, techFiscalIds, notes, ...rest } = values
+
+    // Um contrato que já tinha fiscais técnicos vinculados não pode ficar sem
+    // nenhum — o backend exige ao menos um.
+    if (initial.techFiscalIds.length > 0 && techFiscalIds.length === 0) {
+      setError("techFiscalIds", {
+        message: "Selecione ao menos um fiscal técnico",
+      })
+      return
+    }
+
+    const input: UpdateContractInput = {
+      ...rest,
+      notes: notes?.trim() ? notes.trim() : null,
+    }
+
+    // Só os papéis efetivamente trocados entram no PATCH: reenviar o mesmo
+    // vínculo geraria ruído na auditoria, e papel legado não tocado precisa
+    // ficar de fora para o backend preservar o texto.
+    if (managerId && managerId !== initial.managerId) {
+      input.managerId = managerId
+    }
+    if (adminFiscalId && adminFiscalId !== initial.adminFiscalId) {
+      input.adminFiscalId = adminFiscalId
+    }
+    if (
+      techFiscalIds.length > 0 &&
+      !sameIds(techFiscalIds, initial.techFiscalIds)
+    ) {
+      input.techFiscalIds = techFiscalIds
+    }
+
     updateContract.mutate(
-      {
-        contractId: contract.contractId,
-        input: {
-          ...values,
-          notes: values.notes?.trim() ? values.notes.trim() : null,
-        },
-      },
+      { contractId: contract.contractId, input },
       { onSuccess: () => onOpenChange(false) }
     )
   }
@@ -126,29 +173,57 @@ export function EditContractDialog({
       </Field>
 
       <SectionTitle>Responsáveis</SectionTitle>
-      <Field label="Gestor" error={errors.manager?.message}>
-        <Input
-          placeholder="Nome do gestor"
-          aria-invalid={!!errors.manager}
-          {...register("manager")}
+      <Field label="Gestor" error={errors.managerId?.message}>
+        <Controller
+          control={control}
+          name="managerId"
+          render={({ field }) => (
+            <UserPicker
+              role="manager"
+              value={field.value}
+              onChange={field.onChange}
+              legacyName={contract.manager.userId ? undefined : contract.manager.name}
+              invalid={!!errors.managerId}
+            />
+          )}
         />
       </Field>
-      <Field label="Fiscal Adm" error={errors.adminFiscal?.message}>
-        <Input
-          placeholder="Nome do fiscal administrativo"
-          aria-invalid={!!errors.adminFiscal}
-          {...register("adminFiscal")}
+      <Field label="Fiscal Adm" error={errors.adminFiscalId?.message}>
+        <Controller
+          control={control}
+          name="adminFiscalId"
+          render={({ field }) => (
+            <UserPicker
+              role="adminFiscal"
+              value={field.value}
+              onChange={field.onChange}
+              legacyName={
+                contract.adminFiscal.userId
+                  ? undefined
+                  : contract.adminFiscal.name
+              }
+              invalid={!!errors.adminFiscalId}
+            />
+          )}
         />
       </Field>
       <Field
         label="Fiscais Técnicos"
-        error={errors.techFiscals?.message}
+        error={errors.techFiscalIds?.message}
         className="col-span-2"
       >
-        <Input
-          placeholder="Nomes dos fiscais técnicos (separados por vírgula)"
-          aria-invalid={!!errors.techFiscals}
-          {...register("techFiscals")}
+        <Controller
+          control={control}
+          name="techFiscalIds"
+          render={({ field }) => (
+            <UserMultiPicker
+              role="techFiscal"
+              value={field.value}
+              onChange={field.onChange}
+              legacyName={legacyLabel(contract.techFiscals)}
+              invalid={!!errors.techFiscalIds}
+            />
+          )}
         />
       </Field>
 

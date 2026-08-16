@@ -21,6 +21,7 @@ import {
   FileValidationIcon,
   Invoice02Icon,
   PieChart01Icon,
+  UserGroupIcon,
 } from "@hugeicons/core-free-icons"
 
 export const sidebarUser = {
@@ -67,6 +68,16 @@ const navGestao = [
   },
 ]
 
+// Separado de "Gestão": usuários não são domínio de contrato, e é aqui que
+// Configurações entra depois.
+const navAdministracao = [
+  {
+    title: "Usuários",
+    url: "/dashboard/usuarios",
+    icon: <HugeiconsIcon icon={UserGroupIcon} strokeWidth={1.6} />,
+  },
+]
+
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   return (
     <Sidebar variant="sidebar" collapsible="icon" {...props}>
@@ -90,6 +101,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       <SidebarContent>
         <NavMain label="Geral" items={navGeral} />
         <NavMain label="Gestão" items={navGestao} />
+        <NavMain label="Administração" items={navAdministracao} />
       </SidebarContent>
       <SidebarFooter>
         <NavUser user={sidebarUser} />

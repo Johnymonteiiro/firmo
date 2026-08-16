@@ -7,6 +7,9 @@ import { z } from "zod"
  */
 const MAX_YEAR = 2100
 
+/** Domínio institucional aceito no cadastro de usuários (RN-U01). */
+export const INSTITUTIONAL_DOMAIN = "ufsc.br"
+
 const RE = {
   sne: /^\d{9}$/, // {ano}{seq:5d}
   siafi: /^\d{4}NE\d{6}$/,
@@ -14,7 +17,13 @@ const RE = {
   contract: /^\d{4}\/\d{4}$/, // {número:4d}/{ano}
   period: /^\d{4}-(0[1-9]|1[0-2])$/,
   decimal: /^\d+(\.\d{1,2})?$/,
+  // local@dominio-institucional ou subdomínio dele — espelha o VO
+  // InstitutionalEmail do backend.
+  institutionalEmail:
+    /^[a-z0-9](?:[a-z0-9._%+-]*[a-z0-9])?@(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)*ufsc\.br$/,
 }
+
+const MAX_EMAIL_LENGTH = 254 // RFC 5321
 
 const prefixYear = (v: string) => Number(v.slice(0, 4))
 const yearAfterSlash = (v: string) => Number(v.split("/")[1]?.slice(0, 4))
@@ -76,6 +85,22 @@ export function periodSchema() {
 
 export function decimalSchema(message = "Informe um valor válido") {
   return z.string().regex(RE.decimal, message)
+}
+
+/**
+ * E-mail institucional (RN-U01) — só o domínio da instituição ou subdomínios
+ * dele. A comparação ignora maiúsculas; o backend normaliza para minúsculas.
+ */
+export function institutionalEmailSchema() {
+  return z
+    .string()
+    .trim()
+    .min(1, "Informe o e-mail")
+    .max(MAX_EMAIL_LENGTH, `E-mail: máximo ${MAX_EMAIL_LENGTH} caracteres.`)
+    .refine(
+      (v) => RE.institutionalEmail.test(v.toLowerCase()),
+      `E-mail: deve ser institucional @${INSTITUTIONAL_DOMAIN} (ex.: nome.sobrenome@${INSTITUTIONAL_DOMAIN}).`
+    )
 }
 
 // ---------- opcionais (válido só quando preenchido) ----------

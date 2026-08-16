@@ -85,7 +85,9 @@ export const contractColumns: ColumnDef<Contract>[] = [
     size: 240,
   },
   {
-    accessorKey: "manager",
+    // `manager` é um objeto { userId, name } — a coluna ordena e filtra pelo
+    // nome, que é o texto legado quando não há vínculo com usuário.
+    accessorFn: (row) => row.manager.name,
     id: "manager",
     header: ({ column }) => (
       <DataGridColumnHeader title="Gestor" column={column} />

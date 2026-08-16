@@ -42,6 +42,11 @@ const FIELD_LABELS: Record<string, string> = {
   process_pag: "Processo de Pagamento",
   valor_ecom: "Valor Economizado",
   solici_pag: "Solicitação",
+  // usuário
+  nome: "Nome",
+  email: "E-mail",
+  perfil: "Perfil",
+  usuario_id: "Usuário",
 }
 
 const MONEY_KEYS = new Set([

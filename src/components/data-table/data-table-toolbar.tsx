@@ -113,7 +113,9 @@ function FacetedFilter<TData>({
           className="h-10 gap-2 rounded-lg border-transparent bg-card shadow-none hover:bg-secondary"
         >
           <HugeiconsIcon icon={FilterIcon} strokeWidth={2} />
-          Filtro
+          {/* Nomear o filtro: com dois ou mais na mesma toolbar, "Filtro"
+              repetido não diz qual é qual. */}
+          {title}
           {selected.size > 0 && (
             <Badge variant="secondary">{selected.size}</Badge>
           )}
