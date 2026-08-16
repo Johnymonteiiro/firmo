@@ -1,6 +1,8 @@
 "use client"
 
 import * as React from "react"
+import Link from "next/link"
+import { useRouter } from "next/navigation"
 import type { ColumnDef } from "@tanstack/react-table"
 
 import { DataGridColumnHeader } from "@/components/reui/data-grid/data-grid-column-header"
@@ -31,6 +33,8 @@ function inArrayFilter(
   return !value?.length || value.includes(row.getValue(id) as string)
 }
 
+const USER_URL = "/dashboard/usuarios"
+
 const USER_STATUS_OPTIONS: StatusOption<UserStatus>[] = [
   { value: "ATIVO", label: "Ativar", dotClass: "bg-success" },
   { value: "INATIVO", label: "Desativar", dotClass: "bg-muted-foreground" },
@@ -45,7 +49,12 @@ export const userColumns: ColumnDef<User>[] = [
       <DataGridColumnHeader title="Nome" column={column} />
     ),
     cell: ({ row }) => (
-      <span className="font-medium">{row.original.name}</span>
+      <Link
+        href={`${USER_URL}/${row.original.userId}`}
+        className="font-medium hover:underline"
+      >
+        {row.original.name}
+      </Link>
     ),
     size: 200,
   },
@@ -97,6 +106,7 @@ export const userColumns: ColumnDef<User>[] = [
 ]
 
 function UserActionsCell({ user }: { user: User }) {
+  const router = useRouter()
   const [editOpen, setEditOpen] = React.useState(false)
   const archive = useArchiveUser()
   const changeStatus = useChangeUserStatus()
@@ -105,6 +115,7 @@ function UserActionsCell({ user }: { user: User }) {
     <>
       <DataTableRowActions
         entityLabel="usuário"
+        onDetails={() => router.push(`${USER_URL}/${user.userId}`)}
         onEdit={() => setEditOpen(true)}
         onChangeStatus={(status) =>
           changeStatus.mutateAsync({ userId: user.userId, status })

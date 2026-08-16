@@ -154,16 +154,20 @@ export interface ListContractsResponse {
 export interface ListContractsParams {
   page?: number
   pageSize?: number
+  /** Restringe aos contratos em que o usuário ocupa algum papel (RF-U06). */
+  userId?: string
 }
 
 export function listContracts({
   page = 1,
   pageSize = 20,
+  userId,
 }: ListContractsParams = {}): Promise<ListContractsResponse> {
   const params = new URLSearchParams({
     page: String(page),
     pageSize: String(pageSize),
   })
+  if (userId) params.set("userId", userId)
   return apiFetch<ListContractsResponse>(`/contract?${params.toString()}`)
 }
 
@@ -232,6 +236,18 @@ export function useContracts(page: number, pageSize: number) {
     queryKey: [...contractsKey, page, pageSize],
     queryFn: () => listContracts({ page, pageSize }),
     placeholderData: (prev) => prev,
+  })
+}
+
+/**
+ * Contratos sob responsabilidade do usuário (RF-U06). Uma página só: a tela do
+ * perfil avisa quando `total` passa do teto em vez de paginar.
+ */
+export function useUserContracts(userId: string | null, pageSize = 100) {
+  return useQuery({
+    queryKey: [...contractsKey, "byUser", userId, pageSize],
+    queryFn: () => listContracts({ userId: userId as string, pageSize }),
+    enabled: !!userId,
   })
 }
 
