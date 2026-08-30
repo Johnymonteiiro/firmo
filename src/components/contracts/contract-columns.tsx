@@ -18,6 +18,7 @@ import {
   useChangeContractStatus,
   type Contract,
 } from "@/lib/contracts"
+import { PERMISSIONS, usePermissions } from "@/lib/permissions"
 import { useRouter } from "next/navigation"
 
 function formatDate(iso: string): string {
@@ -85,12 +86,12 @@ export const contractColumns: ColumnDef<Contract>[] = [
     size: 240,
   },
   {
-    // `manager` é um objeto { userId, name } — a coluna ordena e filtra pelo
-    // nome, que é o texto legado quando não há vínculo com usuário.
-    accessorFn: (row) => row.manager.name,
+    // `managers` é uma lista de { userId, name } — a coluna ordena e filtra
+    // pelos nomes, que são o texto legado quando não há vínculo com usuário.
+    accessorFn: (row) => row.managers.map((ref) => ref.name).join(", "),
     id: "manager",
     header: ({ column }) => (
-      <DataGridColumnHeader title="Gestor" column={column} />
+      <DataGridColumnHeader title="Gestores" column={column} />
     ),
     size: 150,
   },
@@ -205,6 +206,8 @@ function ContractActionsCell({ contract }: { contract: Contract }) {
   const [editOpen, setEditOpen] = React.useState(false)
   const archive = useArchiveContract()
   const changeStatus = useChangeContractStatus()
+  const { can } = usePermissions()
+  const canEdit = can(PERMISSIONS.contratosEditar)
 
   return (
     <>
@@ -215,20 +218,31 @@ function ContractActionsCell({ contract }: { contract: Contract }) {
             `/dashboard/contratos/continuados/relacao-contratos/${contract.contractId}`
           )
         }
-        onEdit={() => setEditOpen(true)}
-        onChangeStatus={(status) =>
-          changeStatus.mutateAsync({
-            contractId: contract.contractId,
-            status,
-          })
+        onEdit={canEdit ? () => setEditOpen(true) : undefined}
+        onChangeStatus={
+          canEdit
+            ? (status) =>
+                changeStatus.mutateAsync({
+                  contractId: contract.contractId,
+                  status,
+                })
+            : undefined
         }
         currentStatus={contract.status}
-        history={{
-          entity: "contract",
-          recordId: contract.contractId,
-          subtitle: `Nº ${contract.contractNumber} · ${contract.company}`,
-        }}
-        onArchive={() => archive.mutateAsync(contract.contractId)}
+        history={
+          can(PERMISSIONS.auditoriaVisualizar)
+            ? {
+                entity: "contract",
+                recordId: contract.contractId,
+                subtitle: `Nº ${contract.contractNumber} · ${contract.company}`,
+              }
+            : undefined
+        }
+        onArchive={
+          can(PERMISSIONS.contratosArquivar)
+            ? () => archive.mutateAsync(contract.contractId)
+            : undefined
+        }
       />
       <EditContractDialog
         contract={contract}

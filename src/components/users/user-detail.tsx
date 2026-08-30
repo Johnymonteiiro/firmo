@@ -20,8 +20,10 @@ import {
 } from "@/components/contracts/contract-status-badge"
 import { HistoryDrawer } from "@/components/history/history-drawer"
 import { EditUserDialog } from "@/components/users/edit-user-dialog"
-import { UserProfileBadge } from "@/components/users/user-profile-badge"
+import { UserProfileBadges } from "@/components/users/user-profile-badge"
 import { UserStatusBadge } from "@/components/users/user-status-badge"
+import { useSession } from "@/lib/auth"
+import { PERMISSIONS, usePermissions } from "@/lib/permissions"
 import { useUserCommitments, type Commitment } from "@/lib/commitments"
 import { useUserContracts, type Contract } from "@/lib/contracts"
 import { formatDate } from "@/lib/format"
@@ -40,11 +42,20 @@ type Tab = "contracts" | "commitments"
 
 export function UserDetail({ userId }: { userId: string }) {
   const { data: user, isLoading, isError, error } = useUser(userId)
+  const { data: session } = useSession()
+  const { can } = usePermissions()
   const contracts = useUserContracts(userId, PAGE_SIZE)
   const commitments = useUserCommitments(userId, PAGE_SIZE)
   const [tab, setTab] = React.useState<Tab>("contracts")
   const [editOpen, setEditOpen] = React.useState(false)
   const [historyOpen, setHistoryOpen] = React.useState(false)
+
+  // RN-U06: quem tem `usuarios:editar` edita qualquer um; os demais, só a si
+  // mesmos e sem tocar em perfil. E-mail e status não são editáveis aqui.
+  const canEditOthers = can(PERMISSIONS.usuariosEditar)
+  const isSelf = session?.userId === userId
+  const canEditSelf = isSelf && can(PERMISSIONS.usuariosEditarProprio)
+  const canEdit = canEditOthers || canEditSelf
 
   if (isLoading) {
     return (
@@ -90,20 +101,29 @@ export function UserDetail({ userId }: { userId: string }) {
             <h1 className="text-2xl font-semibold tracking-tight">
               {user.name}
             </h1>
-            <UserProfileBadge profile={user.profile} />
+            <UserProfileBadges profiles={user.profiles} />
             <UserStatusBadge status={user.status} />
+            {isSelf ? (
+              <span className="rounded-md bg-muted px-2 py-0.5 text-xs text-muted-foreground">
+                você
+              </span>
+            ) : null}
           </div>
           <p className="mt-1 text-sm text-muted-foreground">{user.email}</p>
         </div>
         <div className="flex shrink-0 gap-2">
-          <Button variant="outline" onClick={() => setEditOpen(true)}>
-            <HugeiconsIcon icon={PencilEdit02Icon} strokeWidth={2} />
-            Editar
-          </Button>
-          <Button onClick={() => setHistoryOpen(true)}>
-            <HugeiconsIcon icon={ClockIcon} strokeWidth={2} />
-            Ver histórico
-          </Button>
+          {canEdit ? (
+            <Button variant="outline" onClick={() => setEditOpen(true)}>
+              <HugeiconsIcon icon={PencilEdit02Icon} strokeWidth={2} />
+              Editar
+            </Button>
+          ) : null}
+          {can(PERMISSIONS.auditoriaVisualizar) ? (
+            <Button onClick={() => setHistoryOpen(true)}>
+              <HugeiconsIcon icon={ClockIcon} strokeWidth={2} />
+              Ver histórico
+            </Button>
+          ) : null}
         </div>
       </div>
 
@@ -154,7 +174,13 @@ export function UserDetail({ userId }: { userId: string }) {
         )}
       </div>
 
-      <EditUserDialog user={user} open={editOpen} onOpenChange={setEditOpen} />
+      <EditUserDialog
+        user={user}
+        open={editOpen}
+        onOpenChange={setEditOpen}
+        canEditProfile={canEditOthers}
+        self={!canEditOthers && isSelf}
+      />
       <HistoryDrawer
         entity="user"
         recordId={user.userId}
@@ -320,8 +346,10 @@ function CommitmentsTab({
 /** Papéis do usuário naquele contrato — pode ocupar mais de um. */
 function rolesOf(contract: Contract, userId: string): string[] {
   const roles: string[] = []
-  if (contract.manager.userId === userId) roles.push("Gestor")
-  if (contract.adminFiscal.userId === userId) roles.push("Fiscal Adm")
+  if (contract.managers.some((m) => m.userId === userId)) roles.push("Gestor")
+  if (contract.adminFiscals.some((f) => f.userId === userId)) {
+    roles.push("Fiscal Adm")
+  }
   if (contract.techFiscals.some((f) => f.userId === userId)) {
     roles.push("Fiscal Téc")
   }

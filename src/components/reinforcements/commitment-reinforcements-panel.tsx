@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { ApiError } from "@/lib/api"
 import { formatDate } from "@/lib/format"
+import { PERMISSIONS, useCan } from "@/lib/permissions"
 import {
   useAnnulReinforcement,
   useReinforcements,
@@ -29,6 +30,7 @@ export function CommitmentReinforcementsPanel({
   const annul = useAnnulReinforcement()
   const queryClient = useQueryClient()
   const [target, setTarget] = React.useState<Reinforcement | null>(null)
+  const canAnnulReinforcement = useCan(PERMISSIONS.reforcosAnular)
 
   const currentYear = new Date().getFullYear()
   const reinforcements = data?.data ?? []
@@ -68,33 +70,37 @@ export function CommitmentReinforcementsPanel({
       <ul className="space-y-1.5">
         {reinforcements.map((r) => {
           const year = new Date(r.reinforcementDate).getUTCFullYear()
-          const canAnnul = year < currentYear
+          const canAnnul = canAnnulReinforcement && year < currentYear
           return (
             <li
               key={r.reinforcementId}
               className="flex items-center justify-between gap-3 rounded-lg border bg-card px-3 py-2"
             >
               <div className="min-w-0">
-                <p className="font-mono text-sm tabular-nums">{r.value}</p>
+                <p className="font-mono text-sm tabular-nums">
+                  SNE {r.sne} · {r.value}
+                </p>
                 <p className="text-xs text-muted-foreground">
                   {formatDate(r.reinforcementDate)}
                 </p>
               </div>
-              <Button
-                type="button"
-                size="sm"
-                variant="ghost"
-                className="shrink-0 text-destructive hover:text-destructive"
-                disabled={!canAnnul}
-                title={
-                  canAnnul
-                    ? undefined
-                    : `Reforço de ${year} só pode ser anulado a partir de ${year + 1}.`
-                }
-                onClick={() => setTarget(r)}
-              >
-                Anular
-              </Button>
+              {canAnnulReinforcement ? (
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  className="shrink-0 text-destructive hover:text-destructive"
+                  disabled={!canAnnul}
+                  title={
+                    canAnnul
+                      ? undefined
+                      : `Reforço de ${year} só pode ser anulado a partir de ${year + 1}.`
+                  }
+                  onClick={() => setTarget(r)}
+                >
+                  Anular
+                </Button>
+              ) : null}
             </li>
           )
         })}
@@ -108,7 +114,7 @@ export function CommitmentReinforcementsPanel({
         title="Anular reforço?"
         description={
           target
-            ? `O reforço de ${target.value} (${formatDate(target.reinforcementDate)}) será anulado e o valor sairá do saldo do empenho. Esta ação é DEFINITIVA — não pode ser desfeita.`
+            ? `O reforço SNE ${target.sne}, de ${target.value} (${formatDate(target.reinforcementDate)}), será anulado e o valor sairá do saldo do empenho. Esta ação é DEFINITIVA — não pode ser desfeita.`
             : ""
         }
         confirmLabel="Anular"

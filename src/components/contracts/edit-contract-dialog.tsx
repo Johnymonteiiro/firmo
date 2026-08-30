@@ -10,7 +10,7 @@ import { CurrencyInput } from "@/components/form/currency-input"
 import { DatePicker } from "@/components/form/date-picker"
 import { FormDialog } from "@/components/form/form-dialog"
 import { Field, SectionTitle } from "@/components/form/form-field"
-import { UserMultiPicker, UserPicker } from "@/components/form/user-picker"
+import { UserMultiPicker } from "@/components/form/user-picker"
 import { ApiError } from "@/lib/api"
 import {
   updateContractSchema,
@@ -26,20 +26,18 @@ function sameIds(a: string[], b: string[]): boolean {
   return a.length === b.length && [...a].sort().join() === [...b].sort().join()
 }
 
-/** IDs vinculados; vazio quando o contrato só tem o texto legado no papel. */
-function linkedTechFiscalIds(c: Contract): string[] {
-  return c.techFiscals
-    .map((ref) => ref.userId)
-    .filter((id): id is string => id !== null)
+/** IDs dos responsáveis já vinculados — o legado sem vínculo fica de fora. */
+function linkedIds(refs: Contract["techFiscals"]): string[] {
+  return refs.map((ref) => ref.userId).filter((id): id is string => id !== null)
 }
 
 function toFormValues(c: Contract): UpdateContractFormValues {
   return {
     company: c.company,
     subject: c.subject,
-    managerId: c.manager.userId ?? "",
-    adminFiscalId: c.adminFiscal.userId ?? "",
-    techFiscalIds: linkedTechFiscalIds(c),
+    managerIds: linkedIds(c.managers),
+    adminFiscalIds: linkedIds(c.adminFiscals),
+    techFiscalIds: linkedIds(c.techFiscals),
     startDate: c.startDate?.slice(0, 10) ?? "",
     expiresAt: c.expiresAt?.slice(0, 10) ?? "",
     monthlyValue: parseBRL(c.monthlyValue).toFixed(2),
@@ -83,15 +81,22 @@ export function EditContractDialog({
 
   function onSubmit(values: UpdateContractFormValues) {
     const initial = toFormValues(contract)
-    const { managerId, adminFiscalId, techFiscalIds, notes, ...rest } = values
+    const { managerIds, adminFiscalIds, techFiscalIds, notes, ...rest } = values
 
-    // Um contrato que já tinha fiscais técnicos vinculados não pode ficar sem
-    // nenhum — o backend exige ao menos um.
-    if (initial.techFiscalIds.length > 0 && techFiscalIds.length === 0) {
-      setError("techFiscalIds", {
-        message: "Selecione ao menos um fiscal técnico",
-      })
-      return
+    // Um papel que já tinha vínculo não pode ficar sem nenhum responsável —
+    // o backend exige ao menos um.
+    const emptied: Array<[keyof UpdateContractFormValues, string]> = [
+      ["managerIds", "Selecione ao menos um gestor"],
+      ["adminFiscalIds", "Selecione ao menos um fiscal administrativo"],
+      ["techFiscalIds", "Selecione ao menos um fiscal técnico"],
+    ]
+    for (const [fieldName, message] of emptied) {
+      const before = initial[fieldName] as string[]
+      const now = values[fieldName] as string[]
+      if (before.length > 0 && now.length === 0) {
+        setError(fieldName, { message })
+        return
+      }
     }
 
     const input: UpdateContractInput = {
@@ -102,11 +107,14 @@ export function EditContractDialog({
     // Só os papéis efetivamente trocados entram no PATCH: reenviar o mesmo
     // vínculo geraria ruído na auditoria, e papel legado não tocado precisa
     // ficar de fora para o backend preservar o texto.
-    if (managerId && managerId !== initial.managerId) {
-      input.managerId = managerId
+    if (managerIds.length > 0 && !sameIds(managerIds, initial.managerIds)) {
+      input.managerIds = managerIds
     }
-    if (adminFiscalId && adminFiscalId !== initial.adminFiscalId) {
-      input.adminFiscalId = adminFiscalId
+    if (
+      adminFiscalIds.length > 0 &&
+      !sameIds(adminFiscalIds, initial.adminFiscalIds)
+    ) {
+      input.adminFiscalIds = adminFiscalIds
     }
     if (
       techFiscalIds.length > 0 &&
@@ -173,36 +181,32 @@ export function EditContractDialog({
       </Field>
 
       <SectionTitle>Responsáveis</SectionTitle>
-      <Field label="Gestor" error={errors.managerId?.message}>
+      <Field label="Gestores" error={errors.managerIds?.message}>
         <Controller
           control={control}
-          name="managerId"
+          name="managerIds"
           render={({ field }) => (
-            <UserPicker
-              role="manager"
+            <UserMultiPicker
               value={field.value}
               onChange={field.onChange}
-              legacyName={contract.manager.userId ? undefined : contract.manager.name}
-              invalid={!!errors.managerId}
+              legacyName={legacyLabel(contract.managers)}
+              invalid={!!errors.managerIds}
+              placeholder="Selecione os gestores"
             />
           )}
         />
       </Field>
-      <Field label="Fiscal Adm" error={errors.adminFiscalId?.message}>
+      <Field label="Fiscais Adm" error={errors.adminFiscalIds?.message}>
         <Controller
           control={control}
-          name="adminFiscalId"
+          name="adminFiscalIds"
           render={({ field }) => (
-            <UserPicker
-              role="adminFiscal"
+            <UserMultiPicker
               value={field.value}
               onChange={field.onChange}
-              legacyName={
-                contract.adminFiscal.userId
-                  ? undefined
-                  : contract.adminFiscal.name
-              }
-              invalid={!!errors.adminFiscalId}
+              legacyName={legacyLabel(contract.adminFiscals)}
+              invalid={!!errors.adminFiscalIds}
+              placeholder="Selecione os fiscais administrativos"
             />
           )}
         />
@@ -217,11 +221,11 @@ export function EditContractDialog({
           name="techFiscalIds"
           render={({ field }) => (
             <UserMultiPicker
-              role="techFiscal"
               value={field.value}
               onChange={field.onChange}
               legacyName={legacyLabel(contract.techFiscals)}
               invalid={!!errors.techFiscalIds}
+              placeholder="Selecione os fiscais técnicos"
             />
           )}
         />

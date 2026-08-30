@@ -35,12 +35,12 @@ export interface Contract {
   contractId: string
   contractNumber: string
   processNumber: string
-  adminFiscal: ContractUserRef
   /** Contrato legado devolve um único item com o texto inteiro em `name`. */
+  adminFiscals: ContractUserRef[]
   techFiscals: ContractUserRef[]
   company: string
   subject: string
-  manager: ContractUserRef
+  managers: ContractUserRef[]
   status: ContractStatus
   hasAdjustment: AdjustmentType
   monthlyValue: string
@@ -62,11 +62,11 @@ export interface Contract {
 export interface CreateContractInput {
   contractNumber: string
   processNumber: string
-  adminFiscalId: string
+  adminFiscalIds: string[]
   techFiscalIds: string[]
   company: string
   subject: string
-  managerId: string
+  managerIds: string[]
   startDate: string
   expiresAt: string
   monthlyValue: string
@@ -82,13 +82,15 @@ export const createContractSchema = z
   .object({
     contractNumber: contractNumberSchema(),
     processNumber: processSchema(),
-    adminFiscalId: z.string().min(1, "Selecione o fiscal administrativo"),
+    adminFiscalIds: z
+      .array(z.string())
+      .min(1, "Selecione ao menos um fiscal administrativo"),
     techFiscalIds: z
       .array(z.string())
       .min(1, "Selecione ao menos um fiscal técnico"),
     company: z.string().trim().min(1, "Informe a empresa"),
     subject: z.string().trim().min(1, "Informe o objeto"),
-    managerId: z.string().min(1, "Selecione o gestor"),
+    managerIds: z.array(z.string()).min(1, "Selecione ao menos um gestor"),
     startDate: z.string().min(1, "Informe a data de início"),
     expiresAt: z.string().min(1, "Informe o vencimento"),
     monthlyValue: decimalSchema(),
@@ -114,8 +116,8 @@ export const updateContractSchema = z
   .object({
     company: z.string().trim().min(1, "Informe a empresa"),
     subject: z.string().trim().min(1, "Informe o objeto"),
-    managerId: z.string(),
-    adminFiscalId: z.string(),
+    managerIds: z.array(z.string()),
+    adminFiscalIds: z.array(z.string()),
     techFiscalIds: z.array(z.string()),
     startDate: z.string().min(1, "Informe a data de início"),
     expiresAt: z.string().min(1, "Informe o vencimento"),
@@ -136,11 +138,11 @@ export type UpdateContractFormValues = z.infer<typeof updateContractSchema>
  */
 export type UpdateContractInput = Omit<
   UpdateContractFormValues,
-  "notes" | "managerId" | "adminFiscalId" | "techFiscalIds"
+  "notes" | "managerIds" | "adminFiscalIds" | "techFiscalIds"
 > & {
   notes?: string | null
-  managerId?: string
-  adminFiscalId?: string
+  managerIds?: string[]
+  adminFiscalIds?: string[]
   techFiscalIds?: string[]
 }
 

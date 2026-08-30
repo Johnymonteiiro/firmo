@@ -22,7 +22,6 @@ import { Spinner } from "@/components/ui/spinner"
 import {
   USER_PROFILE_LABELS,
   useSelectableUsers,
-  type ContractRole,
   type User,
 } from "@/lib/users"
 import { cn } from "@/lib/utils"
@@ -54,14 +53,14 @@ function UserRow({ user }: { user: User }) {
     <div className="flex min-w-0 flex-col text-left">
       <span className="truncate text-sm">{user.name}</span>
       <span className="truncate text-xs text-muted-foreground">
-        {user.email} · {USER_PROFILE_LABELS[user.profile]}
+        {user.email} ·{" "}
+        {user.profiles.map((p) => USER_PROFILE_LABELS[p]).join(" · ")}
       </span>
     </div>
   )
 }
 
 function PickerShell({
-  role,
   open,
   onOpenChange,
   triggerLabel,
@@ -70,7 +69,6 @@ function PickerShell({
   disabled,
   children,
 }: {
-  role: ContractRole
   open: boolean
   onOpenChange: (open: boolean) => void
   triggerLabel: React.ReactNode
@@ -80,7 +78,7 @@ function PickerShell({
   children: (users: User[]) => React.ReactNode
 }) {
   const [term, setTerm] = React.useState("")
-  const { users, isLoading, isError, isTruncated } = useSelectableUsers(role)
+  const { users, isLoading, isError, isTruncated } = useSelectableUsers()
 
   const visible = users.filter((user) => matches(user, term))
 
@@ -149,7 +147,7 @@ function PickerShell({
           ) : visible.length === 0 ? (
             <p className="py-6 text-center text-sm text-muted-foreground">
               {users.length === 0
-                ? "Nenhum usuário ativo com perfil compatível."
+                ? "Nenhum usuário ativo."
                 : "Nenhum usuário encontrado."}
             </p>
           ) : (
@@ -161,97 +159,25 @@ function PickerShell({
   )
 }
 
-/** Papel com um único responsável — gestor e fiscal administrativo. */
-export function UserPicker({
-  role,
-  value,
-  onChange,
-  legacyName,
-  invalid,
-  disabled,
-}: {
-  role: ContractRole
-  value: string
-  onChange: (userId: string) => void
-  /** Nome em texto legado exibido enquanto o papel não tem vínculo. */
-  legacyName?: string
-  invalid?: boolean
-  disabled?: boolean
-}) {
-  const [open, setOpen] = React.useState(false)
-  const { users } = useSelectableUsers(role)
-  const selected = users.find((user) => user.userId === value)
-
-  const label = selected ? (
-    <span className="truncate">{selected.name}</span>
-  ) : legacyName ? (
-    <span className="flex min-w-0 items-center gap-2">
-      <span className="truncate">{legacyName}</span>
-      <Badge variant="secondary" className="shrink-0">
-        sem vínculo
-      </Badge>
-    </span>
-  ) : (
-    <span className="text-muted-foreground">Selecione um usuário</span>
-  )
-
-  return (
-    <PickerShell
-      role={role}
-      open={open}
-      onOpenChange={setOpen}
-      triggerLabel={label}
-      placeholder="Buscar por nome ou e-mail"
-      invalid={invalid}
-      disabled={disabled}
-    >
-      {(visible) => (
-        <ul className="flex flex-col">
-          {visible.map((user) => (
-            <li key={user.userId}>
-              <button
-                type="button"
-                onClick={() => {
-                  onChange(user.userId)
-                  setOpen(false)
-                }}
-                className="flex w-full items-center justify-between gap-2 rounded-sm px-2 py-1.5 hover:bg-accent"
-              >
-                <UserRow user={user} />
-                {user.userId === value ? (
-                  <HugeiconsIcon
-                    icon={Tick02Icon}
-                    strokeWidth={2}
-                    className="size-4 shrink-0"
-                  />
-                ) : null}
-              </button>
-            </li>
-          ))}
-        </ul>
-      )}
-    </PickerShell>
-  )
-}
-
-/** Papel com vários responsáveis — fiscais técnicos. */
+/** Papel com vários responsáveis — vale para os três: gestor e fiscais. */
 export function UserMultiPicker({
-  role,
   value,
   onChange,
   legacyName,
   invalid,
   disabled,
+  placeholder = "Selecione os responsáveis",
 }: {
-  role: ContractRole
   value: string[]
   onChange: (userIds: string[]) => void
   legacyName?: string
   invalid?: boolean
   disabled?: boolean
+  /** Texto do botão quando nada foi escolhido ainda. */
+  placeholder?: string
 }) {
   const [open, setOpen] = React.useState(false)
-  const { users } = useSelectableUsers(role)
+  const { users } = useSelectableUsers()
   const selected = users.filter((user) => value.includes(user.userId))
 
   function toggle(userId: string) {
@@ -302,12 +228,11 @@ export function UserMultiPicker({
         </Badge>
       </span>
     ) : (
-      <span className="text-muted-foreground">Selecione os fiscais</span>
+      <span className="text-muted-foreground">{placeholder}</span>
     )
 
   return (
     <PickerShell
-      role={role}
       open={open}
       onOpenChange={setOpen}
       triggerLabel={label}

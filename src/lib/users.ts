@@ -10,21 +10,17 @@ import { institutionalEmailSchema } from "@/lib/validation"
 export type UserProfile =
   | "ADMINISTRADOR"
   | "GESTOR_CONTRATOS"
-  | "FISCAL_ADMINISTRATIVO"
-  | "FISCAL_TECNICO"
-  | "SERVIDOR"
-  | "AUDITOR"
+  | "GESTOR_FINANCEIRO"
+  | "VISITANTE"
 
 export type UserStatus = "ATIVO" | "INATIVO" | "SUSPENSO"
 
 /** Rótulos em PT-BR — usados em colunas, filtros, badges e selects. */
 export const USER_PROFILE_LABELS: Record<UserProfile, string> = {
   ADMINISTRADOR: "Administrador",
-  GESTOR_CONTRATOS: "Gestor de Contratos",
-  FISCAL_ADMINISTRATIVO: "Fiscal Administrativo",
-  FISCAL_TECNICO: "Fiscal Técnico",
-  SERVIDOR: "Servidor",
-  AUDITOR: "Auditor",
+  GESTOR_CONTRATOS: "Gestor de Contrato",
+  GESTOR_FINANCEIRO: "Gestor Financeiro",
+  VISITANTE: "Visitante",
 }
 
 export const USER_STATUS_LABELS: Record<UserStatus, string> = {
@@ -44,7 +40,8 @@ export interface User {
   userId: string
   name: string
   email: string
-  profile: UserProfile
+  /** RF-C04 — um usuário pode acumular perfis; a API garante ao menos um. */
+  profiles: UserProfile[]
   status: UserStatus
   isActive: boolean
   createdAt: string
@@ -56,7 +53,7 @@ export interface User {
 export interface CreateUserInput {
   name: string
   email: string
-  profile: UserProfile
+  profiles: UserProfile[]
   status?: UserStatus
 }
 
@@ -64,6 +61,11 @@ const profileField = z.enum(
   USER_PROFILES as [UserProfile, ...UserProfile[]],
   { message: "Selecione o perfil" }
 )
+
+/** RF-C04 — pelo menos um perfil; a API recusa lista vazia. */
+const profilesField = z
+  .array(profileField)
+  .min(1, "Selecione ao menos um perfil")
 
 const statusField = z.enum(USER_STATUSES as [UserStatus, ...UserStatus[]], {
   message: "Selecione o status",
@@ -77,7 +79,7 @@ export const createUserSchema = z.object({
     .min(1, "Informe o nome")
     .max(150, "Nome: máximo 150 caracteres"),
   email: institutionalEmailSchema(),
-  profile: profileField,
+  profiles: profilesField,
   status: statusField,
 })
 
@@ -93,11 +95,15 @@ export const updateUserSchema = z.object({
     .trim()
     .min(1, "Informe o nome")
     .max(150, "Nome: máximo 150 caracteres"),
-  profile: profileField,
+  profiles: profilesField,
 })
 
 export type UpdateUserFormValues = z.infer<typeof updateUserSchema>
-export type UpdateUserInput = UpdateUserFormValues
+/**
+ * `profiles` é opcional no envio: quem não administra edita só o próprio nome,
+ * e mandar o campo — ainda que com o valor atual — leva 403 (RN-U06).
+ */
+export type UpdateUserInput = Partial<UpdateUserFormValues>
 
 export interface ListUsersResponse {
   data: User[]
@@ -152,6 +158,18 @@ export function updateUser(
   input: UpdateUserInput
 ): Promise<unknown> {
   return apiFetch(`/users/${userId}`, {
+    method: "PATCH",
+    body: JSON.stringify(input),
+  })
+}
+
+/**
+ * Auto-edição (RN-U06). O backend separa as rotas de propósito: `PATCH
+ * /users/:userId` exige `usuarios:editar`, que só quem administra tem —
+ * corrigir os próprios dados passa por `usuarios:editar_proprio`.
+ */
+export function updateOwnUser(input: UpdateUserInput): Promise<unknown> {
+  return apiFetch("/users/me", {
     method: "PATCH",
     body: JSON.stringify(input),
   })
@@ -247,10 +265,13 @@ export function useUpdateUser() {
     mutationFn: ({
       userId,
       input,
+      self = false,
     }: {
       userId: string
       input: UpdateUserInput
-    }) => updateUser(userId, input),
+      /** Edição dos próprios dados — vai para `/users/me`. */
+      self?: boolean
+    }) => (self ? updateOwnUser(input) : updateUser(userId, input)),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: usersKey })
     },
@@ -312,27 +333,14 @@ export function useUnarchiveUser() {
 
 // ---------- seleção de responsáveis de contrato ----------
 
-/**
- * Perfis aceitos por papel do contrato — espelha o `ContractRoleResolver` do
- * backend. ADMINISTRADOR é coringa em todos: enquanto a base de usuários está
- * sendo montada, ele precisa poder assumir qualquer papel.
- */
-export const CONTRACT_ROLE_PROFILES = {
-  manager: ["GESTOR_CONTRATOS", "ADMINISTRADOR"],
-  adminFiscal: ["FISCAL_ADMINISTRATIVO", "ADMINISTRADOR"],
-  techFiscal: ["FISCAL_TECNICO", "ADMINISTRADOR"],
-} as const satisfies Record<string, readonly UserProfile[]>
-
-export type ContractRole = keyof typeof CONTRACT_ROLE_PROFILES
-
 const SELECTABLE_PAGE_SIZE = 100
 
 /**
- * Usuários elegíveis a um papel de contrato: ATIVO e com perfil compatível.
- * Uma única busca dos ativos serve os três pickers — o recorte por perfil é
- * client-side porque a API filtra um perfil por vez e cada papel aceita dois.
+ * Usuários elegíveis aos papéis de contrato: todos os ATIVO. Não há recorte
+ * por perfil de acesso — com quatro perfis de sistema, qualquer usuário ativo
+ * pode ser gestor ou fiscal, mesmo critério do `ContractRoleResolver`.
  */
-export function useSelectableUsers(role: ContractRole) {
+export function useSelectableUsers() {
   const query = useQuery({
     queryKey: [...usersKey, "selectable"],
     queryFn: () =>
@@ -340,10 +348,7 @@ export function useSelectableUsers(role: ContractRole) {
     staleTime: 60_000,
   })
 
-  const allowed = CONTRACT_ROLE_PROFILES[role] as readonly UserProfile[]
-  const users = (query.data?.data ?? []).filter((user) =>
-    allowed.includes(user.profile)
-  )
+  const users = query.data?.data ?? []
 
   return {
     users,

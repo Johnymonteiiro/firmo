@@ -25,7 +25,9 @@ export function UsersKpis() {
       if (u.status === "ATIVO") ativos += 1
       if (u.status === "INATIVO") inativos += 1
       if (u.status === "SUSPENSO") suspensos += 1
-      if (u.profile === "ADMINISTRADOR" && u.status === "ATIVO") admins += 1
+      // RF-C04: conta quem acumula o perfil, não quem só o tem.
+      if (u.profiles.includes("ADMINISTRADOR") && u.status === "ATIVO")
+        admins += 1
     }
     return { ativos, inativos, suspensos, admins }
   }, [users])

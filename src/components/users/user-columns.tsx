@@ -12,7 +12,7 @@ import {
 } from "@/components/data-table/data-table-row-actions"
 import { actionsColumn } from "@/components/data-table/columns"
 import { EditUserDialog } from "@/components/users/edit-user-dialog"
-import { UserProfileBadge } from "@/components/users/user-profile-badge"
+import { UserProfileBadges } from "@/components/users/user-profile-badge"
 import { UserStatusBadge } from "@/components/users/user-status-badge"
 import {
   USER_PROFILE_LABELS,
@@ -23,14 +23,23 @@ import {
   type UserStatus,
 } from "@/lib/users"
 import { formatDate } from "@/lib/format"
+import { PERMISSIONS, usePermissions } from "@/lib/permissions"
 
-/** Filtro multi-seleção (valor = array de strings). */
+/**
+ * Filtro multi-seleção (valor = array de strings). A célula pode guardar um
+ * valor só (status) ou uma lista (perfis, RF-C04) — no segundo caso basta uma
+ * interseção para a linha passar.
+ */
 function inArrayFilter(
   row: { getValue: (id: string) => unknown },
   id: string,
   value: string[]
 ) {
-  return !value?.length || value.includes(row.getValue(id) as string)
+  if (!value?.length) return true
+  const cell = row.getValue(id)
+  return Array.isArray(cell)
+    ? cell.some((item) => value.includes(item as string))
+    : value.includes(cell as string)
 }
 
 const USER_URL = "/dashboard/usuarios"
@@ -71,13 +80,16 @@ export const userColumns: ColumnDef<User>[] = [
   },
   {
     id: "profile",
-    accessorFn: (row) => USER_PROFILE_LABELS[row.profile],
+    accessorFn: (row) => row.profiles.map((p) => USER_PROFILE_LABELS[p]),
+    // Sem isto o filtro ofereceria a combinação inteira ("Auditor,Servidor")
+    // como se fosse um valor — a faceta precisa ver um perfil por vez.
+    getUniqueValues: (row) => row.profiles.map((p) => USER_PROFILE_LABELS[p]),
     header: ({ column }) => (
       <DataGridColumnHeader title="Perfil" column={column} />
     ),
-    cell: ({ row }) => <UserProfileBadge profile={row.original.profile} />,
+    cell: ({ row }) => <UserProfileBadges profiles={row.original.profiles} />,
     filterFn: inArrayFilter,
-    size: 170,
+    size: 200,
   },
   {
     id: "status",
@@ -110,24 +122,40 @@ function UserActionsCell({ user }: { user: User }) {
   const [editOpen, setEditOpen] = React.useState(false)
   const archive = useArchiveUser()
   const changeStatus = useChangeUserStatus()
+  const { can } = usePermissions()
+
+  // Editar e alterar status saem da mesma permissão (`usuarios:editar`);
+  // arquivar tem a sua própria.
+  const canEdit = can(PERMISSIONS.usuariosEditar)
 
   return (
     <>
       <DataTableRowActions
         entityLabel="usuário"
         onDetails={() => router.push(`${USER_URL}/${user.userId}`)}
-        onEdit={() => setEditOpen(true)}
-        onChangeStatus={(status) =>
-          changeStatus.mutateAsync({ userId: user.userId, status })
+        onEdit={canEdit ? () => setEditOpen(true) : undefined}
+        onChangeStatus={
+          canEdit
+            ? (status) =>
+                changeStatus.mutateAsync({ userId: user.userId, status })
+            : undefined
         }
         statusOptions={USER_STATUS_OPTIONS}
         currentStatus={user.status}
-        history={{
-          entity: "user",
-          recordId: user.userId,
-          subtitle: `${user.name} · ${user.email}`,
-        }}
-        onArchive={() => archive.mutateAsync(user.userId)}
+        history={
+          can(PERMISSIONS.auditoriaVisualizar)
+            ? {
+                entity: "user",
+                recordId: user.userId,
+                subtitle: `${user.name} · ${user.email}`,
+              }
+            : undefined
+        }
+        onArchive={
+          can(PERMISSIONS.usuariosArquivar)
+            ? () => archive.mutateAsync(user.userId)
+            : undefined
+        }
       />
       <EditUserDialog user={user} open={editOpen} onOpenChange={setEditOpen} />
     </>

@@ -20,6 +20,14 @@ import {
 export type CommitmentStatus = "VIGENTE" | "SALDO" | "ENCERRADO"
 
 /** Espelha o CommitmentResponseDto (empenho) do backend. */
+/** Reforço resumido dentro do empenho — o que a coluna de reforços mostra. */
+export interface CommitmentReinforcement {
+  reinforcementId: string
+  sne: string
+  value: string
+  reinforcementDate: string
+}
+
 export interface Commitment {
   commitmentId: string
   contractId: string
@@ -32,6 +40,8 @@ export interface Commitment {
   currentBalance: string
   /** Somatório dos reforços ativos (formatado em BRL pelo backend). */
   reinforcementValue: string
+  /** Reforços ativos, do mais recente para o mais antigo. */
+  reinforcements: CommitmentReinforcement[]
   status: CommitmentStatus
   /** Valor Economizado calculado: (inicial + reajuste do contrato) − faturado. */
   savedAmount: string

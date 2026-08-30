@@ -5,10 +5,13 @@ import { userColumns } from "@/components/users/user-columns"
 import { ImportUsersDialog } from "@/components/users/import-users-dialog"
 import { NewUserDialog } from "@/components/users/new-user-dialog"
 import { useUsers } from "@/lib/users"
+import { PERMISSIONS, useCan } from "@/lib/permissions"
 
 export function UsersDataTable() {
   // UI-first: carrega um lote grande e deixa busca/ordenação/paginação client-side.
   const { data, isLoading, isError, error } = useUsers(1, 100)
+  // Cadastro avulso e importação em lote saem da mesma permissão.
+  const canCreate = useCan(PERMISSIONS.usuariosCriar)
 
   return (
     <DataTable
@@ -22,10 +25,12 @@ export function UsersDataTable() {
         { columnId: "status", title: "Status" },
       ]}
       actions={
-        <div className="flex items-center gap-2">
-          <ImportUsersDialog />
-          <NewUserDialog />
-        </div>
+        canCreate ? (
+          <div className="flex items-center gap-2">
+            <ImportUsersDialog />
+            <NewUserDialog />
+          </div>
+        ) : null
       }
       emptyMessage={
         isError

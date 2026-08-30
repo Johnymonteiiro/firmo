@@ -62,8 +62,11 @@ export interface DataTableRowActionsProps<TStatus extends string = ContractRowSt
   currentStatus?: string
   /** Abre o drawer de histórico (auditoria) do registro. */
   history?: { entity: AuditEntity; recordId: string; subtitle?: string }
-  /** Executa o arquivamento (DELETE). */
-  onArchive: () => Promise<unknown>
+  /**
+   * Executa o arquivamento (DELETE). Omitido quando a sessão não tem a
+   * permissão de arquivar — a opção some do menu em vez de responder 403.
+   */
+  onArchive?: () => Promise<unknown>
   /** Itens extras (DropdownMenuItem) renderizados no topo do menu. */
   extraActions?: React.ReactNode
   /** Rótulo/comportamento da ação destrutiva (default: "Arquivar"). */
@@ -111,6 +114,7 @@ export function DataTableRowActions<TStatus extends string = ContractRowStatus>(
   }
 
   function handleArchive() {
+    if (!onArchive) return
     setIsArchiving(true)
     Promise.resolve(onArchive())
       .then(() => {
@@ -129,6 +133,17 @@ export function DataTableRowActions<TStatus extends string = ContractRowStatus>(
       })
       .finally(() => setIsArchiving(false))
   }
+
+  // Filtradas as ações por permissão, pode não sobrar nenhuma — aí o menu
+  // inteiro sai da linha, sem botão que abre um dropdown vazio.
+  const hasAction =
+    !!extraActions ||
+    !!onDetails ||
+    !!onEdit ||
+    !!onChangeStatus ||
+    !!history ||
+    !!onArchive
+  if (!hasAction) return null
 
   return (
     <>
@@ -204,13 +219,15 @@ export function DataTableRowActions<TStatus extends string = ContractRowStatus>(
               <DropdownMenuSeparator />
             </>
           ) : null}
-          <DropdownMenuItem
-            variant="destructive"
-            onClick={() => setConfirmOpen(true)}
-          >
-            <HugeiconsIcon icon={Archive02Icon} strokeWidth={2} />
-            {destructiveAction?.label ?? "Arquivar"}
-          </DropdownMenuItem>
+          {onArchive ? (
+            <DropdownMenuItem
+              variant="destructive"
+              onClick={() => setConfirmOpen(true)}
+            >
+              <HugeiconsIcon icon={Archive02Icon} strokeWidth={2} />
+              {destructiveAction?.label ?? "Arquivar"}
+            </DropdownMenuItem>
+          ) : null}
         </DropdownMenuContent>
       </DropdownMenu>
 

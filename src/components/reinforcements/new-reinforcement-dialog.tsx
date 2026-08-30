@@ -55,6 +55,7 @@ export function NewReinforcementDialog({
   const emptyForm: CreateReinforcementFormValues = React.useMemo(
     () => ({
       commitmentId: commitment?.commitmentId ?? "",
+      sne: "",
       value: "",
       reinforcementDate: "",
     }),
@@ -64,6 +65,7 @@ export function NewReinforcementDialog({
   const {
     handleSubmit,
     control,
+    register,
     reset,
     formState: { errors },
   } = useForm<CreateReinforcementFormValues>({
@@ -151,6 +153,15 @@ export function NewReinforcementDialog({
       )}
 
       <SectionTitle>Dados do reforço</SectionTitle>
+      <Field label="SNE do Reforço" error={errors.sne?.message}>
+        <Input
+          placeholder="202600512"
+          inputMode="numeric"
+          aria-invalid={!!errors.sne}
+          {...register("sne")}
+        />
+      </Field>
+
       <Field label="Valor (R$)" error={errors.value?.message}>
         <Controller
           control={control}

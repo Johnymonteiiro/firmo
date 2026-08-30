@@ -15,11 +15,10 @@ import {
 } from "@/components/ui/select"
 import { FormDialog } from "@/components/form/form-dialog"
 import { Field, SectionTitle } from "@/components/form/form-field"
+import { ProfilesField } from "@/components/users/profiles-field"
 import { ApiError } from "@/lib/api"
 import {
   createUserSchema,
-  USER_PROFILE_LABELS,
-  USER_PROFILES,
   USER_STATUS_LABELS,
   USER_STATUSES,
   useCreateUser,
@@ -32,7 +31,7 @@ import { Add01Icon } from "@hugeicons/core-free-icons"
 const EMPTY_FORM: CreateUserFormValues = {
   name: "",
   email: "",
-  profile: "SERVIDOR",
+  profiles: ["VISITANTE"],
   status: "ATIVO",
 }
 
@@ -120,23 +119,24 @@ export function NewUserDialog() {
       </Field>
 
       <SectionTitle>Acesso</SectionTitle>
-      <Field label="Perfil" error={errors.profile?.message}>
+      <p className="col-span-2 -mt-1 text-xs text-muted-foreground">
+        O usuário recebe por e-mail um link para definir a própria senha,
+        válido por 48 horas. Nenhuma senha é criada aqui.
+      </p>
+      <Field
+        label="Perfis"
+        error={errors.profiles?.message}
+        className="col-span-2"
+      >
         <Controller
           control={control}
-          name="profile"
+          name="profiles"
           render={({ field }) => (
-            <Select value={field.value} onValueChange={field.onChange}>
-              <SelectTrigger aria-invalid={!!errors.profile}>
-                <SelectValue placeholder="Selecione o perfil" />
-              </SelectTrigger>
-              <SelectContent>
-                {USER_PROFILES.map((profile) => (
-                  <SelectItem key={profile} value={profile}>
-                    {USER_PROFILE_LABELS[profile]}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <ProfilesField
+              value={field.value}
+              onChange={field.onChange}
+              invalid={!!errors.profiles}
+            />
           )}
         />
       </Field>

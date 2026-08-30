@@ -8,6 +8,7 @@ import {
 } from "@/components/archived/archived-cards"
 import { useArchivedBillings, useUnarchiveBilling } from "@/lib/billings"
 import { useContracts } from "@/lib/contracts"
+import { PERMISSIONS, usePermissions } from "@/lib/permissions"
 
 /** "2026-04" -> "04/2026" */
 function formatPeriod(period: string): string {
@@ -19,6 +20,7 @@ export function ArchivedBillingsCards() {
   const { data, isLoading, isError, error } = useArchivedBillings(1, 100)
   const { data: contracts } = useContracts(1, 100)
   const unarchive = useUnarchiveBilling()
+  const { can } = usePermissions()
 
   const getContractNumber = React.useMemo(() => {
     const map = new Map(
@@ -52,12 +54,20 @@ export function ArchivedBillingsCards() {
           ]}
           archivedAt={b.deletedAt ?? b.updatedAt}
           entityLabel="faturamento"
-          onUnarchive={() => unarchive.mutateAsync(b.billingId)}
-          history={{
-            entity: "billing",
-            recordId: b.billingId,
-            subtitle: `Competência ${formatPeriod(b.period)} · ${b.contractedCompany}`,
-          }}
+          onUnarchive={
+            can(PERMISSIONS.faturamentosArquivar)
+              ? () => unarchive.mutateAsync(b.billingId)
+              : undefined
+          }
+          history={
+            can(PERMISSIONS.auditoriaVisualizar)
+              ? {
+                  entity: "billing",
+                  recordId: b.billingId,
+                  subtitle: `Competência ${formatPeriod(b.period)} · ${b.contractedCompany}`,
+                }
+              : undefined
+          }
         />
       )}
     />

@@ -14,6 +14,7 @@ import { EditContractDialog } from "@/components/contracts/edit-contract-dialog"
 import { HistoryDrawer } from "@/components/history/history-drawer"
 import { isUnlinked, useContract, type ContractUserRef } from "@/lib/contracts"
 import { formatDate } from "@/lib/format"
+import { PERMISSIONS, usePermissions } from "@/lib/permissions"
 import { cn } from "@/lib/utils"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { PencilEdit02Icon, ClockIcon } from "@hugeicons/core-free-icons"
@@ -24,6 +25,7 @@ export function ContractDetail({ contractId }: { contractId: string }) {
   const { data: contract, isLoading, isError, error } = useContract(contractId)
   const [editOpen, setEditOpen] = React.useState(false)
   const [historyOpen, setHistoryOpen] = React.useState(false)
+  const { can } = usePermissions()
 
   if (isLoading) {
     return (
@@ -80,14 +82,18 @@ export function ContractDetail({ contractId }: { contractId: string }) {
           </p>
         </div>
         <div className="flex shrink-0 gap-2">
-          <Button variant="outline" onClick={() => setEditOpen(true)}>
-            <HugeiconsIcon icon={PencilEdit02Icon} strokeWidth={2} />
-            Editar
-          </Button>
-          <Button onClick={() => setHistoryOpen(true)}>
-            <HugeiconsIcon icon={ClockIcon} strokeWidth={2} />
-            Ver histórico
-          </Button>
+          {can(PERMISSIONS.contratosEditar) ? (
+            <Button variant="outline" onClick={() => setEditOpen(true)}>
+              <HugeiconsIcon icon={PencilEdit02Icon} strokeWidth={2} />
+              Editar
+            </Button>
+          ) : null}
+          {can(PERMISSIONS.auditoriaVisualizar) ? (
+            <Button onClick={() => setHistoryOpen(true)}>
+              <HugeiconsIcon icon={ClockIcon} strokeWidth={2} />
+              Ver histórico
+            </Button>
+          ) : null}
         </div>
       </div>
 
@@ -100,7 +106,7 @@ export function ContractDetail({ contractId }: { contractId: string }) {
           mono
         />
         <Cell label="Valor mensal" value={contract.monthlyValue} mono />
-        <Cell label="Gestor" value={<PersonRef person={contract.manager} />} />
+        <Cell label="Gestores" value={<PersonList people={contract.managers} />} />
       </div>
 
       {/* objeto + dados gerais */}
@@ -128,8 +134,8 @@ export function ContractDetail({ contractId }: { contractId: string }) {
               mono
             />
             <Row
-              label="Fiscal Adm"
-              value={<PersonRef person={contract.adminFiscal} />}
+              label="Fiscais Adm"
+              value={<PersonList people={contract.adminFiscals} />}
             />
             <Row
               label="Fiscais Técnicos"

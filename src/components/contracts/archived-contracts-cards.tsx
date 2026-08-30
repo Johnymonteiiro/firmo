@@ -10,10 +10,12 @@ import {
 } from "@/components/contracts/contract-status-badge"
 import { useArchivedContracts, useUnarchiveContract } from "@/lib/contracts"
 import { formatDate } from "@/lib/format"
+import { PERMISSIONS, usePermissions } from "@/lib/permissions"
 
 export function ArchivedContractsCards() {
   const { data, isLoading, isError, error } = useArchivedContracts(1, 100)
   const unarchive = useUnarchiveContract()
+  const { can } = usePermissions()
   const items = data?.data ?? []
 
   return (
@@ -46,12 +48,20 @@ export function ArchivedContractsCards() {
           ]}
           archivedAt={c.deletedAt ?? c.updatedAt}
           entityLabel="contrato"
-          onUnarchive={() => unarchive.mutateAsync(c.contractId)}
-          history={{
-            entity: "contract",
-            recordId: c.contractId,
-            subtitle: `Nº ${c.contractNumber} · ${c.company}`,
-          }}
+          onUnarchive={
+            can(PERMISSIONS.contratosArquivar)
+              ? () => unarchive.mutateAsync(c.contractId)
+              : undefined
+          }
+          history={
+            can(PERMISSIONS.auditoriaVisualizar)
+              ? {
+                  entity: "contract",
+                  recordId: c.contractId,
+                  subtitle: `Nº ${c.contractNumber} · ${c.company}`,
+                }
+              : undefined
+          }
         />
       )}
     />

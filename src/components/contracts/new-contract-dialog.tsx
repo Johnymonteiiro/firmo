@@ -12,7 +12,7 @@ import { DatePicker } from "@/components/form/date-picker"
 import { FormDialog } from "@/components/form/form-dialog"
 import { ProcessInput } from "@/components/form/process-input"
 import { Field, SectionTitle } from "@/components/form/form-field"
-import { UserMultiPicker, UserPicker } from "@/components/form/user-picker"
+import { UserMultiPicker } from "@/components/form/user-picker"
 import { ApiError } from "@/lib/api"
 import {
   createContractSchema,
@@ -25,11 +25,11 @@ import { Add01Icon } from "@hugeicons/core-free-icons"
 const EMPTY_FORM: CreateContractFormValues = {
   contractNumber: "",
   processNumber: "",
-  adminFiscalId: "",
+  adminFiscalIds: [],
   techFiscalIds: [],
   company: "",
   subject: "",
-  managerId: "",
+  managerIds: [],
   startDate: "",
   expiresAt: "",
   monthlyValue: "",
@@ -154,31 +154,32 @@ export function NewContractDialog() {
       </Field>
 
       <SectionTitle>Responsáveis</SectionTitle>
-      <Field label="Gestor" error={errors.managerId?.message}>
+      {/* Os três papéis aceitam mais de um responsável. */}
+      <Field label="Gestores" error={errors.managerIds?.message}>
         <Controller
           control={control}
-          name="managerId"
+          name="managerIds"
           render={({ field }) => (
-            <UserPicker
-              role="manager"
+            <UserMultiPicker
               value={field.value}
               onChange={field.onChange}
-              invalid={!!errors.managerId}
+              invalid={!!errors.managerIds}
+              placeholder="Selecione os gestores"
             />
           )}
         />
       </Field>
 
-      <Field label="Fiscal Adm" error={errors.adminFiscalId?.message}>
+      <Field label="Fiscais Adm" error={errors.adminFiscalIds?.message}>
         <Controller
           control={control}
-          name="adminFiscalId"
+          name="adminFiscalIds"
           render={({ field }) => (
-            <UserPicker
-              role="adminFiscal"
+            <UserMultiPicker
               value={field.value}
               onChange={field.onChange}
-              invalid={!!errors.adminFiscalId}
+              invalid={!!errors.adminFiscalIds}
+              placeholder="Selecione os fiscais administrativos"
             />
           )}
         />
@@ -194,10 +195,10 @@ export function NewContractDialog() {
           name="techFiscalIds"
           render={({ field }) => (
             <UserMultiPicker
-              role="techFiscal"
               value={field.value}
               onChange={field.onChange}
               invalid={!!errors.techFiscalIds}
+              placeholder="Selecione os fiscais técnicos"
             />
           )}
         />

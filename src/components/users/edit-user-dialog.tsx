@@ -5,20 +5,12 @@ import { Controller, useForm } from "react-hook-form"
 import { standardSchemaResolver } from "@hookform/resolvers/standard-schema"
 
 import { Input } from "@/components/ui/input"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
 import { FormDialog } from "@/components/form/form-dialog"
 import { Field, SectionTitle } from "@/components/form/form-field"
+import { ProfilesField, ProfilesReadonly } from "@/components/users/profiles-field"
 import { ApiError } from "@/lib/api"
 import {
   updateUserSchema,
-  USER_PROFILE_LABELS,
-  USER_PROFILES,
   useUpdateUser,
   type UpdateUserFormValues,
   type User,
@@ -28,16 +20,26 @@ export function EditUserDialog({
   user,
   open,
   onOpenChange,
+  canEditProfile = true,
+  self = false,
 }: {
   user: User
   open: boolean
   onOpenChange: (open: boolean) => void
+  /** Falso para quem não tem `usuarios:editar` (RN-U06). */
+  canEditProfile?: boolean
+  /**
+   * Edição dos próprios dados: vai para `PATCH /users/me`, que exige apenas
+   * `usuarios:editar_proprio`. Pela rota de terceiros o backend responderia
+   * 403 a quem não administra.
+   */
+  self?: boolean
 }) {
   const updateUser = useUpdateUser()
 
   const defaults = React.useMemo<UpdateUserFormValues>(
-    () => ({ name: user.name, profile: user.profile }),
-    [user.name, user.profile]
+    () => ({ name: user.name, profiles: user.profiles }),
+    [user.name, user.profiles]
   )
 
   const {
@@ -57,8 +59,12 @@ export function EditUserDialog({
   }, [open, defaults, reset])
 
   function onSubmit(values: UpdateUserFormValues) {
+    // Sem permissão de perfil, o campo nem entra no PATCH: o backend recusa
+    // (403) mesmo que o valor enviado seja o atual.
+    const input = canEditProfile ? values : { name: values.name }
+
     updateUser.mutate(
-      { userId: user.userId, input: values },
+      { userId: user.userId, input, self },
       { onSuccess: () => onOpenChange(false) }
     )
   }
@@ -101,25 +107,28 @@ export function EditUserDialog({
       </Field>
 
       <SectionTitle>Acesso</SectionTitle>
-      <Field label="Perfil" error={errors.profile?.message}>
-        <Controller
-          control={control}
-          name="profile"
-          render={({ field }) => (
-            <Select value={field.value} onValueChange={field.onChange}>
-              <SelectTrigger aria-invalid={!!errors.profile}>
-                <SelectValue placeholder="Selecione o perfil" />
-              </SelectTrigger>
-              <SelectContent>
-                {USER_PROFILES.map((profile) => (
-                  <SelectItem key={profile} value={profile}>
-                    {USER_PROFILE_LABELS[profile]}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          )}
-        />
+      {/* Perfil é decisão de quem administra (RN-U06) — para os demais o
+          campo aparece, para dar contexto, mas em leitura. */}
+      <Field
+        label="Perfis"
+        error={errors.profiles?.message}
+        className="col-span-2"
+      >
+        {canEditProfile ? (
+          <Controller
+            control={control}
+            name="profiles"
+            render={({ field }) => (
+              <ProfilesField
+                value={field.value}
+                onChange={field.onChange}
+                invalid={!!errors.profiles}
+              />
+            )}
+          />
+        ) : (
+          <ProfilesReadonly profiles={user.profiles} />
+        )}
       </Field>
 
       {/* Status tem rota própria (guarda anti-lockout) — via menu de ações. */}
