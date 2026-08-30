@@ -3,6 +3,7 @@
 import * as React from "react"
 import Link from "next/link"
 
+import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import {
@@ -11,8 +12,9 @@ import {
 } from "@/components/contracts/contract-status-badge"
 import { EditContractDialog } from "@/components/contracts/edit-contract-dialog"
 import { HistoryDrawer } from "@/components/history/history-drawer"
-import { useContract } from "@/lib/contracts"
+import { isUnlinked, useContract, type ContractUserRef } from "@/lib/contracts"
 import { formatDate } from "@/lib/format"
+import { PERMISSIONS, usePermissions } from "@/lib/permissions"
 import { cn } from "@/lib/utils"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { PencilEdit02Icon, ClockIcon } from "@hugeicons/core-free-icons"
@@ -23,6 +25,7 @@ export function ContractDetail({ contractId }: { contractId: string }) {
   const { data: contract, isLoading, isError, error } = useContract(contractId)
   const [editOpen, setEditOpen] = React.useState(false)
   const [historyOpen, setHistoryOpen] = React.useState(false)
+  const { can } = usePermissions()
 
   if (isLoading) {
     return (
@@ -79,14 +82,18 @@ export function ContractDetail({ contractId }: { contractId: string }) {
           </p>
         </div>
         <div className="flex shrink-0 gap-2">
-          <Button variant="outline" onClick={() => setEditOpen(true)}>
-            <HugeiconsIcon icon={PencilEdit02Icon} strokeWidth={2} />
-            Editar
-          </Button>
-          <Button onClick={() => setHistoryOpen(true)}>
-            <HugeiconsIcon icon={ClockIcon} strokeWidth={2} />
-            Ver histórico
-          </Button>
+          {can(PERMISSIONS.contratosEditar) ? (
+            <Button variant="outline" onClick={() => setEditOpen(true)}>
+              <HugeiconsIcon icon={PencilEdit02Icon} strokeWidth={2} />
+              Editar
+            </Button>
+          ) : null}
+          {can(PERMISSIONS.auditoriaVisualizar) ? (
+            <Button onClick={() => setHistoryOpen(true)}>
+              <HugeiconsIcon icon={ClockIcon} strokeWidth={2} />
+              Ver histórico
+            </Button>
+          ) : null}
         </div>
       </div>
 
@@ -99,7 +106,7 @@ export function ContractDetail({ contractId }: { contractId: string }) {
           mono
         />
         <Cell label="Valor mensal" value={contract.monthlyValue} mono />
-        <Cell label="Gestor" value={contract.manager} />
+        <Cell label="Gestores" value={<PersonList people={contract.managers} />} />
       </div>
 
       {/* objeto + dados gerais */}
@@ -126,8 +133,14 @@ export function ContractDetail({ contractId }: { contractId: string }) {
               value={String(contract.daysRemaining)}
               mono
             />
-            <Row label="Fiscal Adm" value={contract.adminFiscal} />
-            <Row label="Fiscais Técnicos" value={contract.techFiscals} />
+            <Row
+              label="Fiscais Adm"
+              value={<PersonList people={contract.adminFiscals} />}
+            />
+            <Row
+              label="Fiscais Técnicos"
+              value={<PersonList people={contract.techFiscals} />}
+            />
             <Row
               label="Ocorreu reajuste"
               value={contract.hasAdjustment === "SIM" ? "Sim" : "Não"}
@@ -164,6 +177,36 @@ export function ContractDetail({ contractId }: { contractId: string }) {
   )
 }
 
+/**
+ * Responsável do contrato. Sem vínculo com usuário cadastrado, só resta o
+ * texto legado — sinalizado para que a ausência não passe por dado normal.
+ */
+function PersonRef({ person }: { person: ContractUserRef }) {
+  if (isUnlinked(person)) {
+    return (
+      <span className="inline-flex flex-wrap items-center justify-end gap-1.5">
+        {person.name}
+        <Badge variant="secondary">sem vínculo</Badge>
+      </span>
+    )
+  }
+  return <>{person.name}</>
+}
+
+function PersonList({ people }: { people: ContractUserRef[] }) {
+  if (people.length === 0) return <>—</>
+  return (
+    <span className="inline-flex flex-wrap items-center justify-end gap-x-1.5 gap-y-1">
+      {people.map((person, index) => (
+        <React.Fragment key={person.userId ?? `legacy-${index}`}>
+          {index > 0 ? <span className="text-muted-foreground">·</span> : null}
+          <PersonRef person={person} />
+        </React.Fragment>
+      ))}
+    </span>
+  )
+}
+
 function Cell({
 
   label,
@@ -171,7 +214,7 @@ function Cell({
   mono,
 }: {
   label: string
-  value: string
+  value: React.ReactNode
   mono?: boolean
 }) {
   return (
@@ -209,7 +252,7 @@ function Row({
   mono,
 }: {
   label: string
-  value: string
+  value: React.ReactNode
   mono?: boolean
 }) {
   return (

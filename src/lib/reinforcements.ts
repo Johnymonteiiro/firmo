@@ -15,6 +15,8 @@ import { decimalSchema } from "@/lib/validation"
 export interface Reinforcement {
   reinforcementId: string
   commitmentId: string
+  /** SNE própria do reforço — única dentro do empenho. */
+  sne: string
   value: string
   processNumber: string
   reinforcementDate: string
@@ -27,6 +29,11 @@ export interface Reinforcement {
 /** Validação do form de criação de reforço (sem processo nem responsável). */
 export const createReinforcementSchema = z.object({
   commitmentId: z.string().min(1, "Selecione o empenho"),
+  sne: z
+    .string()
+    .trim()
+    .min(1, "Informe a SNE do reforço")
+    .max(30, "SNE: no máximo 30 caracteres"),
   value: decimalSchema(),
   reinforcementDate: z.string().min(1, "Informe a data do reforço"),
 })

@@ -46,6 +46,10 @@ export function NavMain({
   const { state, isMobile } = useSidebar()
   const pathname = usePathname()
 
+  // Um grupo cujos itens foram todos filtrados por permissão não deve deixar
+  // o rótulo órfão na barra.
+  if (items.length === 0) return null
+
   return (
     <SidebarGroup>
       {label ? (

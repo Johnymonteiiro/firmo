@@ -15,16 +15,32 @@ export type ContractStatus = "VIGENTE" | "ENCERRADO" | "EXPIRADO"
 
 export type AdjustmentType = "SIM" | "NAO"
 
+/**
+ * Responsável por um papel do contrato. `userId` é `null` nos contratos
+ * anteriores à FK contrato ↔ usuário: neles `name` é o texto legado, única
+ * informação disponível até alguém atribuir um usuário de verdade.
+ */
+export interface ContractUserRef {
+  userId: string | null
+  name: string
+}
+
+/** Contrato legado naquele papel — sem vínculo com usuário cadastrado. */
+export function isUnlinked(ref: ContractUserRef): boolean {
+  return ref.userId === null
+}
+
 /** Espelha o ContractResponseDto do backend (campos usados na UI). */
 export interface Contract {
   contractId: string
   contractNumber: string
   processNumber: string
-  adminFiscal: string
-  techFiscals: string
+  /** Contrato legado devolve um único item com o texto inteiro em `name`. */
+  adminFiscals: ContractUserRef[]
+  techFiscals: ContractUserRef[]
   company: string
   subject: string
-  manager: string
+  managers: ContractUserRef[]
   status: ContractStatus
   hasAdjustment: AdjustmentType
   monthlyValue: string
@@ -42,31 +58,39 @@ export interface Contract {
   deletedAt?: string | null
 }
 
-/** Body aceito pelo POST /contract. */
+/** Body aceito pelo POST /contract — papéis por ID de usuário. */
 export interface CreateContractInput {
   contractNumber: string
   processNumber: string
-  adminFiscal: string
-  techFiscals: string
+  adminFiscalIds: string[]
+  techFiscalIds: string[]
   company: string
   subject: string
-  manager: string
+  managerIds: string[]
   startDate: string
   expiresAt: string
   monthlyValue: string
   notes?: string | null
 }
 
-/** Validação do form de criação, espelhando os formatos do backend. */
+/**
+ * Validação do form de criação, espelhando os formatos do backend.
+ * Contrato novo exige usuário cadastrado nos três papéis — o texto livre só
+ * sobrevive nos contratos anteriores à FK.
+ */
 export const createContractSchema = z
   .object({
     contractNumber: contractNumberSchema(),
     processNumber: processSchema(),
-    adminFiscal: z.string().trim().min(1, "Informe o fiscal administrativo"),
-    techFiscals: z.string().trim().min(1, "Informe os fiscais técnicos"),
+    adminFiscalIds: z
+      .array(z.string())
+      .min(1, "Selecione ao menos um fiscal administrativo"),
+    techFiscalIds: z
+      .array(z.string())
+      .min(1, "Selecione ao menos um fiscal técnico"),
     company: z.string().trim().min(1, "Informe a empresa"),
     subject: z.string().trim().min(1, "Informe o objeto"),
-    manager: z.string().trim().min(1, "Informe o gestor"),
+    managerIds: z.array(z.string()).min(1, "Selecione ao menos um gestor"),
     startDate: z.string().min(1, "Informe a data de início"),
     expiresAt: z.string().min(1, "Informe o vencimento"),
     monthlyValue: decimalSchema(),
@@ -82,14 +106,19 @@ export type CreateContractFormValues = z.infer<typeof createContractSchema>
 /**
  * Edição (PATCH parcial). `contractNumber`/`processNumber` NÃO são editáveis
  * no backend (imutáveis) e não entram aqui.
+ *
+ * Os papéis são opcionais: num contrato legado eles chegam vazios e continuam
+ * vazios enquanto ninguém atribuir um usuário. Papel já vinculado nunca volta
+ * a ficar vazio — o picker não oferece limpar —, então "vazio" só significa
+ * "segue sem vínculo".
  */
 export const updateContractSchema = z
   .object({
     company: z.string().trim().min(1, "Informe a empresa"),
     subject: z.string().trim().min(1, "Informe o objeto"),
-    manager: z.string().trim().min(1, "Informe o gestor"),
-    adminFiscal: z.string().trim().min(1, "Informe o fiscal administrativo"),
-    techFiscals: z.string().trim().min(1, "Informe os fiscais técnicos"),
+    managerIds: z.array(z.string()),
+    adminFiscalIds: z.array(z.string()),
+    techFiscalIds: z.array(z.string()),
     startDate: z.string().min(1, "Informe a data de início"),
     expiresAt: z.string().min(1, "Informe o vencimento"),
     monthlyValue: decimalSchema(),
@@ -101,8 +130,20 @@ export const updateContractSchema = z
   })
 
 export type UpdateContractFormValues = z.infer<typeof updateContractSchema>
-export type UpdateContractInput = Omit<UpdateContractFormValues, "notes"> & {
+
+/**
+ * Body do PATCH. Os papéis só entram quando o usuário efetivamente escolheu
+ * outro responsável — o backend recusa (422) reescrever o texto legado de um
+ * papel já vinculado, e reenviar o mesmo ID à toa gera ruído na auditoria.
+ */
+export type UpdateContractInput = Omit<
+  UpdateContractFormValues,
+  "notes" | "managerIds" | "adminFiscalIds" | "techFiscalIds"
+> & {
   notes?: string | null
+  managerIds?: string[]
+  adminFiscalIds?: string[]
+  techFiscalIds?: string[]
 }
 
 export interface ListContractsResponse {
@@ -115,16 +156,20 @@ export interface ListContractsResponse {
 export interface ListContractsParams {
   page?: number
   pageSize?: number
+  /** Restringe aos contratos em que o usuário ocupa algum papel (RF-U06). */
+  userId?: string
 }
 
 export function listContracts({
   page = 1,
   pageSize = 20,
+  userId,
 }: ListContractsParams = {}): Promise<ListContractsResponse> {
   const params = new URLSearchParams({
     page: String(page),
     pageSize: String(pageSize),
   })
+  if (userId) params.set("userId", userId)
   return apiFetch<ListContractsResponse>(`/contract?${params.toString()}`)
 }
 
@@ -193,6 +238,18 @@ export function useContracts(page: number, pageSize: number) {
     queryKey: [...contractsKey, page, pageSize],
     queryFn: () => listContracts({ page, pageSize }),
     placeholderData: (prev) => prev,
+  })
+}
+
+/**
+ * Contratos sob responsabilidade do usuário (RF-U06). Uma página só: a tela do
+ * perfil avisa quando `total` passa do teto em vez de paginar.
+ */
+export function useUserContracts(userId: string | null, pageSize = 100) {
+  return useQuery({
+    queryKey: [...contractsKey, "byUser", userId, pageSize],
+    queryFn: () => listContracts({ userId: userId as string, pageSize }),
+    enabled: !!userId,
   })
 }
 

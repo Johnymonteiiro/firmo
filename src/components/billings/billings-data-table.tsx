@@ -7,9 +7,11 @@ import { billingColumns } from "@/components/billings/billing-columns"
 import { NewBillingDialog } from "@/components/billings/new-billing-dialog"
 import { useBillings } from "@/lib/billings"
 import { useContracts } from "@/lib/contracts"
+import { PERMISSIONS, useCan } from "@/lib/permissions"
 
 export function BillingsDataTable() {
   const { data, isLoading, isError, error } = useBillings(1, 100)
+  const canCreate = useCan(PERMISSIONS.faturamentosCriar)
   const { data: contracts } = useContracts(1, 100)
 
   const getContractNumber = React.useMemo(() => {
@@ -31,7 +33,7 @@ export function BillingsDataTable() {
       isLoading={isLoading}
       getRowId={(b) => b.billingId}
       searchPlaceholder="Buscar faturamentos..."
-      actions={<NewBillingDialog />}
+      actions={canCreate ? <NewBillingDialog /> : null}
       emptyMessage={
         isError
           ? error instanceof Error

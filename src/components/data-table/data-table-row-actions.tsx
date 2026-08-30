@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { ApiError } from "@/lib/api"
 import type { AuditEntity } from "@/lib/audit"
+import { cn } from "@/lib/utils"
 import { HugeiconsIcon } from "@hugeicons/react"
 import {
   MoreHorizontalCircle01Icon,
@@ -30,7 +31,20 @@ import {
 
 export type ContractRowStatus = "VIGENTE" | "ENCERRADO"
 
-export interface DataTableRowActionsProps {
+export interface StatusOption<TStatus extends string> {
+  value: TStatus
+  label: string
+  /** Classe de cor do pontinho — ex.: "bg-success". */
+  dotClass: string
+}
+
+/** Opções usadas quando a entidade não declara as suas (contratos). */
+const CONTRACT_STATUS_OPTIONS: StatusOption<ContractRowStatus>[] = [
+  { value: "VIGENTE", label: "Vigente", dotClass: "bg-success" },
+  { value: "ENCERRADO", label: "Encerrar", dotClass: "bg-muted-foreground" },
+]
+
+export interface DataTableRowActionsProps<TStatus extends string = ContractRowStatus> {
   /** Ex.: "contrato", "empenho" — usado nos textos de confirmação/toast. */
   entityLabel: string
   /** Abre a página de detalhes (opcional). */
@@ -38,13 +52,21 @@ export interface DataTableRowActionsProps {
   /** Abre o dialog de edição (omitido quando a entidade não tem update). */
   onEdit?: () => void
   /** Submenu "Alterar status" (ex.: contratos). */
-  onChangeStatus?: (status: ContractRowStatus) => Promise<unknown> | void
+  onChangeStatus?: (status: TStatus) => Promise<unknown> | void
+  /**
+   * Opções do submenu de status. Omitido = par de contratos
+   * (Vigente/Encerrar), preservando as chamadas existentes.
+   */
+  statusOptions?: StatusOption<TStatus>[]
   /** Status atual — desabilita a opção correspondente no submenu. */
   currentStatus?: string
   /** Abre o drawer de histórico (auditoria) do registro. */
   history?: { entity: AuditEntity; recordId: string; subtitle?: string }
-  /** Executa o arquivamento (DELETE). */
-  onArchive: () => Promise<unknown>
+  /**
+   * Executa o arquivamento (DELETE). Omitido quando a sessão não tem a
+   * permissão de arquivar — a opção some do menu em vez de responder 403.
+   */
+  onArchive?: () => Promise<unknown>
   /** Itens extras (DropdownMenuItem) renderizados no topo do menu. */
   extraActions?: React.ReactNode
   /** Rótulo/comportamento da ação destrutiva (default: "Arquivar"). */
@@ -59,22 +81,27 @@ export interface DataTableRowActionsProps {
 const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1)
 
 /** Ações de linha: Editar (opcional) + Arquivar (com confirmação). */
-export function DataTableRowActions({
+export function DataTableRowActions<TStatus extends string = ContractRowStatus>({
   entityLabel,
   onDetails,
   onEdit,
   onChangeStatus,
+  statusOptions,
   currentStatus,
   history,
   onArchive,
   extraActions,
   destructiveAction,
-}: DataTableRowActionsProps) {
+}: DataTableRowActionsProps<TStatus>) {
   const [confirmOpen, setConfirmOpen] = React.useState(false)
   const [isArchiving, setIsArchiving] = React.useState(false)
   const [historyOpen, setHistoryOpen] = React.useState(false)
 
-  function handleChangeStatus(status: ContractRowStatus) {
+  // Sem `statusOptions`, TStatus é ContractRowStatus (default do genérico).
+  const options =
+    statusOptions ?? (CONTRACT_STATUS_OPTIONS as StatusOption<TStatus>[])
+
+  function handleChangeStatus(status: TStatus) {
     Promise.resolve(onChangeStatus?.(status))
       .then(() => toast.success(`Status do ${entityLabel} alterado.`))
       .catch((err) =>
@@ -87,6 +114,7 @@ export function DataTableRowActions({
   }
 
   function handleArchive() {
+    if (!onArchive) return
     setIsArchiving(true)
     Promise.resolve(onArchive())
       .then(() => {
@@ -105,6 +133,17 @@ export function DataTableRowActions({
       })
       .finally(() => setIsArchiving(false))
   }
+
+  // Filtradas as ações por permissão, pode não sobrar nenhuma — aí o menu
+  // inteiro sai da linha, sem botão que abre um dropdown vazio.
+  const hasAction =
+    !!extraActions ||
+    !!onDetails ||
+    !!onEdit ||
+    !!onChangeStatus ||
+    !!history ||
+    !!onArchive
+  if (!hasAction) return null
 
   return (
     <>
@@ -151,20 +190,21 @@ export function DataTableRowActions({
                   Alterar status
                 </DropdownMenuSubTrigger>
                 <DropdownMenuSubContent>
-                  <DropdownMenuItem
-                    disabled={currentStatus === "VIGENTE"}
-                    onClick={() => handleChangeStatus("VIGENTE")}
-                  >
-                    <span className="size-1.5 rounded-full bg-success" />
-                    Vigente
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    disabled={currentStatus === "ENCERRADO"}
-                    onClick={() => handleChangeStatus("ENCERRADO")}
-                  >
-                    <span className="size-1.5 rounded-full bg-muted-foreground" />
-                    Encerrar
-                  </DropdownMenuItem>
+                  {options.map((option) => (
+                    <DropdownMenuItem
+                      key={option.value}
+                      disabled={currentStatus === option.value}
+                      onClick={() => handleChangeStatus(option.value)}
+                    >
+                      <span
+                        className={cn(
+                          "size-1.5 rounded-full",
+                          option.dotClass
+                        )}
+                      />
+                      {option.label}
+                    </DropdownMenuItem>
+                  ))}
                 </DropdownMenuSubContent>
               </DropdownMenuSub>
               <DropdownMenuSeparator />
@@ -179,13 +219,15 @@ export function DataTableRowActions({
               <DropdownMenuSeparator />
             </>
           ) : null}
-          <DropdownMenuItem
-            variant="destructive"
-            onClick={() => setConfirmOpen(true)}
-          >
-            <HugeiconsIcon icon={Archive02Icon} strokeWidth={2} />
-            {destructiveAction?.label ?? "Arquivar"}
-          </DropdownMenuItem>
+          {onArchive ? (
+            <DropdownMenuItem
+              variant="destructive"
+              onClick={() => setConfirmOpen(true)}
+            >
+              <HugeiconsIcon icon={Archive02Icon} strokeWidth={2} />
+              {destructiveAction?.label ?? "Arquivar"}
+            </DropdownMenuItem>
+          ) : null}
         </DropdownMenuContent>
       </DropdownMenu>
 

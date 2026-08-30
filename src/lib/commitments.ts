@@ -20,6 +20,14 @@ import {
 export type CommitmentStatus = "VIGENTE" | "SALDO" | "ENCERRADO"
 
 /** Espelha o CommitmentResponseDto (empenho) do backend. */
+/** Reforço resumido dentro do empenho — o que a coluna de reforços mostra. */
+export interface CommitmentReinforcement {
+  reinforcementId: string
+  sne: string
+  value: string
+  reinforcementDate: string
+}
+
 export interface Commitment {
   commitmentId: string
   contractId: string
@@ -32,6 +40,8 @@ export interface Commitment {
   currentBalance: string
   /** Somatório dos reforços ativos (formatado em BRL pelo backend). */
   reinforcementValue: string
+  /** Reforços ativos, do mais recente para o mais antigo. */
+  reinforcements: CommitmentReinforcement[]
   status: CommitmentStatus
   /** Valor Economizado calculado: (inicial + reajuste do contrato) − faturado. */
   savedAmount: string
@@ -64,18 +74,25 @@ export interface ListCommitmentsParams {
   page?: number
   pageSize?: number
   contractId?: string
+  /**
+   * Restringe aos empenhos dos contratos em que o usuário ocupa algum papel
+   * (RF-U06). Combinado com `contractId`, o backend devolve a intersecção.
+   */
+  userId?: string
 }
 
 export function listCommitments({
   page = 1,
   pageSize = 20,
   contractId,
+  userId,
 }: ListCommitmentsParams = {}): Promise<ListCommitmentsResponse> {
   const params = new URLSearchParams({
     page: String(page),
     pageSize: String(pageSize),
   })
   if (contractId) params.set("contractId", contractId)
+  if (userId) params.set("userId", userId)
   return apiFetch<ListCommitmentsResponse>(`/commitments?${params.toString()}`)
 }
 
@@ -118,6 +135,15 @@ export function useCommitments(page: number, pageSize: number) {
     queryKey: [...commitmentsKey, page, pageSize],
     queryFn: () => listCommitments({ page, pageSize }),
     placeholderData: (prev) => prev,
+  })
+}
+
+/** Empenhos dos contratos sob responsabilidade do usuário (RF-U06). */
+export function useUserCommitments(userId: string | null, pageSize = 100) {
+  return useQuery({
+    queryKey: [...commitmentsKey, "byUser", userId, pageSize],
+    queryFn: () => listCommitments({ userId: userId as string, pageSize }),
+    enabled: !!userId,
   })
 }
 

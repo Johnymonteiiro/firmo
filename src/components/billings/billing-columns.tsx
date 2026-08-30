@@ -6,6 +6,7 @@ import { DataGridColumnHeader } from "@/components/reui/data-grid/data-grid-colu
 import { DataTableRowActions } from "@/components/data-table/data-table-row-actions"
 import { actionsColumn } from "@/components/data-table/columns"
 import { useArchiveBilling, type Billing } from "@/lib/billings"
+import { PERMISSIONS, usePermissions } from "@/lib/permissions"
 
 export interface BillingColumnsOptions {
   /** contractId -> número do contrato (ex.: "2333/2026"). */
@@ -171,15 +172,24 @@ export function billingColumns({
 
 function BillingActionsCell({ billing }: { billing: Billing }) {
   const archive = useArchiveBilling()
+  const { can } = usePermissions()
   return (
     <DataTableRowActions
       entityLabel="faturamento"
-      history={{
-        entity: "billing",
-        recordId: billing.billingId,
-        subtitle: `Competência ${billing.period} · ${billing.contractedCompany}`,
-      }}
-      onArchive={() => archive.mutateAsync(billing.billingId)}
+      history={
+        can(PERMISSIONS.auditoriaVisualizar)
+          ? {
+              entity: "billing",
+              recordId: billing.billingId,
+              subtitle: `Competência ${billing.period} · ${billing.contractedCompany}`,
+            }
+          : undefined
+      }
+      onArchive={
+        can(PERMISSIONS.faturamentosArquivar)
+          ? () => archive.mutateAsync(billing.billingId)
+          : undefined
+      }
     />
   )
 }

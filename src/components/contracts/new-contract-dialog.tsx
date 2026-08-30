@@ -12,6 +12,7 @@ import { DatePicker } from "@/components/form/date-picker"
 import { FormDialog } from "@/components/form/form-dialog"
 import { ProcessInput } from "@/components/form/process-input"
 import { Field, SectionTitle } from "@/components/form/form-field"
+import { UserMultiPicker } from "@/components/form/user-picker"
 import { ApiError } from "@/lib/api"
 import {
   createContractSchema,
@@ -24,11 +25,11 @@ import { Add01Icon } from "@hugeicons/core-free-icons"
 const EMPTY_FORM: CreateContractFormValues = {
   contractNumber: "",
   processNumber: "",
-  adminFiscal: "",
-  techFiscals: "",
+  adminFiscalIds: [],
+  techFiscalIds: [],
   company: "",
   subject: "",
-  manager: "",
+  managerIds: [],
   startDate: "",
   expiresAt: "",
   monthlyValue: "",
@@ -153,31 +154,53 @@ export function NewContractDialog() {
       </Field>
 
       <SectionTitle>Responsáveis</SectionTitle>
-      <Field label="Gestor" error={errors.manager?.message}>
-        <Input
-          placeholder="Nome do gestor"
-          aria-invalid={!!errors.manager}
-          {...register("manager")}
+      {/* Os três papéis aceitam mais de um responsável. */}
+      <Field label="Gestores" error={errors.managerIds?.message}>
+        <Controller
+          control={control}
+          name="managerIds"
+          render={({ field }) => (
+            <UserMultiPicker
+              value={field.value}
+              onChange={field.onChange}
+              invalid={!!errors.managerIds}
+              placeholder="Selecione os gestores"
+            />
+          )}
         />
       </Field>
 
-      <Field label="Fiscal Adm" error={errors.adminFiscal?.message}>
-        <Input
-          placeholder="Nome do fiscal administrativo"
-          aria-invalid={!!errors.adminFiscal}
-          {...register("adminFiscal")}
+      <Field label="Fiscais Adm" error={errors.adminFiscalIds?.message}>
+        <Controller
+          control={control}
+          name="adminFiscalIds"
+          render={({ field }) => (
+            <UserMultiPicker
+              value={field.value}
+              onChange={field.onChange}
+              invalid={!!errors.adminFiscalIds}
+              placeholder="Selecione os fiscais administrativos"
+            />
+          )}
         />
       </Field>
 
       <Field
         label="Fiscais Técnicos"
-        error={errors.techFiscals?.message}
+        error={errors.techFiscalIds?.message}
         className="col-span-2"
       >
-        <Input
-          placeholder="Nomes dos fiscais técnicos (separados por vírgula)"
-          aria-invalid={!!errors.techFiscals}
-          {...register("techFiscals")}
+        <Controller
+          control={control}
+          name="techFiscalIds"
+          render={({ field }) => (
+            <UserMultiPicker
+              value={field.value}
+              onChange={field.onChange}
+              invalid={!!errors.techFiscalIds}
+              placeholder="Selecione os fiscais técnicos"
+            />
+          )}
         />
       </Field>
 

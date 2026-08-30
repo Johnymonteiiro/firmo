@@ -67,13 +67,15 @@ export function ArchivedCard({
   fields?: ArchivedCardField[]
   archivedAt: string
   entityLabel: string
-  onUnarchive: () => Promise<unknown>
+  /** Omitido para quem não tem permissão de desarquivar — o botão some. */
+  onUnarchive?: () => Promise<unknown>
   history?: ArchivedHistoryRef
 }) {
   const [pending, setPending] = React.useState(false)
   const [historyOpen, setHistoryOpen] = React.useState(false)
 
   function handleUnarchive() {
+    if (!onUnarchive) return
     setPending(true)
     Promise.resolve(onUnarchive())
       .then(() => toast.success(`${capitalize(entityLabel)} desarquivado.`))
@@ -127,16 +129,18 @@ export function ArchivedCard({
             Arquivado em {formatDate(archivedAt)}
           </span>
           <div className="absolute inset-y-0 right-0 flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100 [&_button]:pointer-events-none group-hover:[&_button]:pointer-events-auto focus-within:[&_button]:pointer-events-auto">
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-7 gap-1.5 px-2.5 text-xs"
-              onClick={handleUnarchive}
-              disabled={pending}
-            >
-              <HugeiconsIcon icon={ArrowUp01Icon} strokeWidth={2} />
-              Desarquivar
-            </Button>
+            {onUnarchive ? (
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-7 gap-1.5 px-2.5 text-xs"
+                onClick={handleUnarchive}
+                disabled={pending}
+              >
+                <HugeiconsIcon icon={ArrowUp01Icon} strokeWidth={2} />
+                Desarquivar
+              </Button>
+            ) : null}
             {history ? (
               <Button
                 variant="ghost"

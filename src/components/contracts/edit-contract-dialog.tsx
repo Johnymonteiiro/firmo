@@ -10,27 +10,44 @@ import { CurrencyInput } from "@/components/form/currency-input"
 import { DatePicker } from "@/components/form/date-picker"
 import { FormDialog } from "@/components/form/form-dialog"
 import { Field, SectionTitle } from "@/components/form/form-field"
+import { UserMultiPicker } from "@/components/form/user-picker"
 import { ApiError } from "@/lib/api"
 import {
   updateContractSchema,
   useUpdateContract,
   type Contract,
   type UpdateContractFormValues,
+  type UpdateContractInput,
 } from "@/lib/contracts"
 import { parseBRL } from "@/lib/format"
+
+/** Mesma composição de fiscais técnicos, independente da ordem. */
+function sameIds(a: string[], b: string[]): boolean {
+  return a.length === b.length && [...a].sort().join() === [...b].sort().join()
+}
+
+/** IDs dos responsáveis já vinculados — o legado sem vínculo fica de fora. */
+function linkedIds(refs: Contract["techFiscals"]): string[] {
+  return refs.map((ref) => ref.userId).filter((id): id is string => id !== null)
+}
 
 function toFormValues(c: Contract): UpdateContractFormValues {
   return {
     company: c.company,
     subject: c.subject,
-    manager: c.manager,
-    adminFiscal: c.adminFiscal,
-    techFiscals: c.techFiscals,
+    managerIds: linkedIds(c.managers),
+    adminFiscalIds: linkedIds(c.adminFiscals),
+    techFiscalIds: linkedIds(c.techFiscals),
     startDate: c.startDate?.slice(0, 10) ?? "",
     expiresAt: c.expiresAt?.slice(0, 10) ?? "",
     monthlyValue: parseBRL(c.monthlyValue).toFixed(2),
     notes: c.notes ?? "",
   }
+}
+
+/** Texto legado a exibir no picker enquanto o papel não tem vínculo. */
+function legacyLabel(refs: Contract["techFiscals"]): string | undefined {
+  return refs.length > 0 && refs[0].userId === null ? refs[0].name : undefined
 }
 
 export function EditContractDialog({
@@ -49,6 +66,7 @@ export function EditContractDialog({
     handleSubmit,
     control,
     reset,
+    setError,
     formState: { errors },
   } = useForm<UpdateContractFormValues>({
     resolver: standardSchemaResolver(updateContractSchema),
@@ -62,14 +80,51 @@ export function EditContractDialog({
   }, [open])
 
   function onSubmit(values: UpdateContractFormValues) {
+    const initial = toFormValues(contract)
+    const { managerIds, adminFiscalIds, techFiscalIds, notes, ...rest } = values
+
+    // Um papel que já tinha vínculo não pode ficar sem nenhum responsável —
+    // o backend exige ao menos um.
+    const emptied: Array<[keyof UpdateContractFormValues, string]> = [
+      ["managerIds", "Selecione ao menos um gestor"],
+      ["adminFiscalIds", "Selecione ao menos um fiscal administrativo"],
+      ["techFiscalIds", "Selecione ao menos um fiscal técnico"],
+    ]
+    for (const [fieldName, message] of emptied) {
+      const before = initial[fieldName] as string[]
+      const now = values[fieldName] as string[]
+      if (before.length > 0 && now.length === 0) {
+        setError(fieldName, { message })
+        return
+      }
+    }
+
+    const input: UpdateContractInput = {
+      ...rest,
+      notes: notes?.trim() ? notes.trim() : null,
+    }
+
+    // Só os papéis efetivamente trocados entram no PATCH: reenviar o mesmo
+    // vínculo geraria ruído na auditoria, e papel legado não tocado precisa
+    // ficar de fora para o backend preservar o texto.
+    if (managerIds.length > 0 && !sameIds(managerIds, initial.managerIds)) {
+      input.managerIds = managerIds
+    }
+    if (
+      adminFiscalIds.length > 0 &&
+      !sameIds(adminFiscalIds, initial.adminFiscalIds)
+    ) {
+      input.adminFiscalIds = adminFiscalIds
+    }
+    if (
+      techFiscalIds.length > 0 &&
+      !sameIds(techFiscalIds, initial.techFiscalIds)
+    ) {
+      input.techFiscalIds = techFiscalIds
+    }
+
     updateContract.mutate(
-      {
-        contractId: contract.contractId,
-        input: {
-          ...values,
-          notes: values.notes?.trim() ? values.notes.trim() : null,
-        },
-      },
+      { contractId: contract.contractId, input },
       { onSuccess: () => onOpenChange(false) }
     )
   }
@@ -126,29 +181,53 @@ export function EditContractDialog({
       </Field>
 
       <SectionTitle>Responsáveis</SectionTitle>
-      <Field label="Gestor" error={errors.manager?.message}>
-        <Input
-          placeholder="Nome do gestor"
-          aria-invalid={!!errors.manager}
-          {...register("manager")}
+      <Field label="Gestores" error={errors.managerIds?.message}>
+        <Controller
+          control={control}
+          name="managerIds"
+          render={({ field }) => (
+            <UserMultiPicker
+              value={field.value}
+              onChange={field.onChange}
+              legacyName={legacyLabel(contract.managers)}
+              invalid={!!errors.managerIds}
+              placeholder="Selecione os gestores"
+            />
+          )}
         />
       </Field>
-      <Field label="Fiscal Adm" error={errors.adminFiscal?.message}>
-        <Input
-          placeholder="Nome do fiscal administrativo"
-          aria-invalid={!!errors.adminFiscal}
-          {...register("adminFiscal")}
+      <Field label="Fiscais Adm" error={errors.adminFiscalIds?.message}>
+        <Controller
+          control={control}
+          name="adminFiscalIds"
+          render={({ field }) => (
+            <UserMultiPicker
+              value={field.value}
+              onChange={field.onChange}
+              legacyName={legacyLabel(contract.adminFiscals)}
+              invalid={!!errors.adminFiscalIds}
+              placeholder="Selecione os fiscais administrativos"
+            />
+          )}
         />
       </Field>
       <Field
         label="Fiscais Técnicos"
-        error={errors.techFiscals?.message}
+        error={errors.techFiscalIds?.message}
         className="col-span-2"
       >
-        <Input
-          placeholder="Nomes dos fiscais técnicos (separados por vírgula)"
-          aria-invalid={!!errors.techFiscals}
-          {...register("techFiscals")}
+        <Controller
+          control={control}
+          name="techFiscalIds"
+          render={({ field }) => (
+            <UserMultiPicker
+              value={field.value}
+              onChange={field.onChange}
+              legacyName={legacyLabel(contract.techFiscals)}
+              invalid={!!errors.techFiscalIds}
+              placeholder="Selecione os fiscais técnicos"
+            />
+          )}
         />
       </Field>
 

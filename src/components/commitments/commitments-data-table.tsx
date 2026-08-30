@@ -7,9 +7,11 @@ import { commitmentColumns } from "@/components/commitments/commitment-columns"
 import { NewCommitmentDialog } from "@/components/commitments/new-commitment-dialog"
 import { useCommitments } from "@/lib/commitments"
 import { useContracts } from "@/lib/contracts"
+import { PERMISSIONS, useCan } from "@/lib/permissions"
 
 export function CommitmentsDataTable() {
   const { data, isLoading, isError, error } = useCommitments(1, 100)
+  const canCreate = useCan(PERMISSIONS.empenhosCriar)
   const { data: contracts } = useContracts(1, 100)
 
   const getContractNumber = React.useMemo(() => {
@@ -31,7 +33,7 @@ export function CommitmentsDataTable() {
       isLoading={isLoading}
       getRowId={(c) => c.commitmentId}
       searchPlaceholder="Buscar empenhos..."
-      actions={<NewCommitmentDialog />}
+      actions={canCreate ? <NewCommitmentDialog /> : null}
       emptyMessage={
         isError
           ? error instanceof Error

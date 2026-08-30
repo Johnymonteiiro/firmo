@@ -12,6 +12,12 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
+import {
+  PERMISSIONS,
+  usePermissions,
+  type Can,
+  type PermissionKey,
+} from "@/lib/permissions"
 import { HugeiconsIcon } from "@hugeicons/react"
 import {
   CommandIcon,
@@ -21,15 +27,24 @@ import {
   FileValidationIcon,
   Invoice02Icon,
   PieChart01Icon,
+  Settings02Icon,
+  UserGroupIcon,
 } from "@hugeicons/core-free-icons"
 
-export const sidebarUser = {
-  name: "Núcleo Gestor",
-  email: "gestor@ufsc.br",
-  avatar: "/avatars/gestor.jpg",
+/**
+ * Item de navegação. `permission` é a chave que libera o destino — sem ela o
+ * item some da barra, em vez de levar a uma tela que responderia 403. Item
+ * sem `permission` é visível para qualquer sessão.
+ */
+interface NavItem {
+  title: string
+  url: string
+  icon: React.ReactNode
+  permission?: PermissionKey
+  items?: NavItem[]
 }
 
-const navGeral = [
+const navGeral: NavItem[] = [
   {
     title: "Dashboard",
     url: "/dashboard",
@@ -37,11 +52,12 @@ const navGeral = [
   },
 ]
 
-const navGestao = [
+const navGestao: NavItem[] = [
   {
     title: "Contratos",
     url: "/dashboard/contratos",
     icon: <HugeiconsIcon icon={ContractsIcon} strokeWidth={1.6} />,
+    permission: PERMISSIONS.contratosVisualizar,
     items: [
       {
         title: "Continuados",
@@ -59,15 +75,46 @@ const navGestao = [
     title: "Faturamento",
     url: "/dashboard/faturamento",
     icon: <HugeiconsIcon icon={Invoice02Icon} strokeWidth={1.6} />,
+    permission: PERMISSIONS.faturamentosVisualizar,
   },
   {
     title: "Gestão Orçamentária",
     url: "/dashboard/gestao-orcamentaria",
     icon: <HugeiconsIcon icon={PieChart01Icon} strokeWidth={1.6} />,
+    permission: PERMISSIONS.empenhosVisualizar,
   },
 ]
 
+// Separado de "Gestão": usuários não são domínio de contrato.
+const navAdministracao: NavItem[] = [
+  {
+    title: "Usuários",
+    url: "/dashboard/usuarios",
+    icon: <HugeiconsIcon icon={UserGroupIcon} strokeWidth={1.6} />,
+    permission: PERMISSIONS.usuariosVisualizar,
+  },
+  // Como Usuários: item único na barra lateral — as categorias da RN-C04
+  // aparecem na subnavbar da própria seção.
+  {
+    title: "Configurações",
+    url: "/dashboard/configuracoes",
+    icon: <HugeiconsIcon icon={Settings02Icon} strokeWidth={1.6} />,
+    permission: PERMISSIONS.configuracoesVisualizar,
+  },
+]
+
+/** Poda a árvore de navegação com o que a sessão pode acessar. */
+function visibleItems(items: NavItem[], can: Can): NavItem[] {
+  return items
+    .filter((item) => !item.permission || can(item.permission))
+    .map((item) =>
+      item.items ? { ...item, items: visibleItems(item.items, can) } : item
+    )
+}
+
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+  const { can } = usePermissions()
+
   return (
     <Sidebar variant="sidebar" collapsible="icon" {...props}>
       <SidebarHeader>
@@ -88,11 +135,15 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         </SidebarMenu>
       </SidebarHeader>
       <SidebarContent>
-        <NavMain label="Geral" items={navGeral} />
-        <NavMain label="Gestão" items={navGestao} />
+        <NavMain label="Geral" items={visibleItems(navGeral, can)} />
+        <NavMain label="Gestão" items={visibleItems(navGestao, can)} />
+        <NavMain
+          label="Administração"
+          items={visibleItems(navAdministracao, can)}
+        />
       </SidebarContent>
       <SidebarFooter>
-        <NavUser user={sidebarUser} />
+        <NavUser />
       </SidebarFooter>
     </Sidebar>
   )

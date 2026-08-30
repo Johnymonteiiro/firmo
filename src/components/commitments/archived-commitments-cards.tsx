@@ -11,11 +11,13 @@ import {
   useUnarchiveCommitment,
 } from "@/lib/commitments"
 import { useContracts } from "@/lib/contracts"
+import { PERMISSIONS, usePermissions } from "@/lib/permissions"
 
 export function ArchivedCommitmentsCards() {
   const { data, isLoading, isError, error } = useArchivedCommitments(1, 100)
   const { data: contracts } = useContracts(1, 100)
   const unarchive = useUnarchiveCommitment()
+  const { can } = usePermissions()
 
   const getContractNumber = React.useMemo(() => {
     const map = new Map(
@@ -49,12 +51,20 @@ export function ArchivedCommitmentsCards() {
           ]}
           archivedAt={c.deletedAt ?? c.updatedAt}
           entityLabel="empenho"
-          onUnarchive={() => unarchive.mutateAsync(c.commitmentId)}
-          history={{
-            entity: "commitment",
-            recordId: c.commitmentId,
-            subtitle: `SNE ${c.sne} · ${c.contractedCompany}`,
-          }}
+          onUnarchive={
+            can(PERMISSIONS.empenhosArquivar)
+              ? () => unarchive.mutateAsync(c.commitmentId)
+              : undefined
+          }
+          history={
+            can(PERMISSIONS.auditoriaVisualizar)
+              ? {
+                  entity: "commitment",
+                  recordId: c.commitmentId,
+                  subtitle: `SNE ${c.sne} · ${c.contractedCompany}`,
+                }
+              : undefined
+          }
         />
       )}
     />
