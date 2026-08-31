@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import Image from "next/image"
 import { NavMain } from "@/components/nav-main"
 import { NavUser } from "@/components/nav-user"
 import {
@@ -20,7 +21,6 @@ import {
 } from "@/lib/permissions"
 import { HugeiconsIcon } from "@hugeicons/react"
 import {
-  CommandIcon,
   DashboardSquare01Icon,
   ContractsIcon,
   FileVerifiedIcon,
@@ -49,6 +49,7 @@ const navGeral: NavItem[] = [
     title: "Dashboard",
     url: "/dashboard",
     icon: <HugeiconsIcon icon={DashboardSquare01Icon} strokeWidth={1.6} />,
+    permission: PERMISSIONS.dashboardVisualizar,
   },
 ]
 
@@ -68,6 +69,7 @@ const navGestao: NavItem[] = [
         title: "Não Continuados",
         url: "/dashboard/contratos/nao-continuados",
         icon: <HugeiconsIcon icon={FileValidationIcon} strokeWidth={1.6} />,
+        permission: PERMISSIONS.naoContinuadosVisualizar,
       },
     ],
   },
@@ -81,7 +83,7 @@ const navGestao: NavItem[] = [
     title: "Gestão Orçamentária",
     url: "/dashboard/gestao-orcamentaria",
     icon: <HugeiconsIcon icon={PieChart01Icon} strokeWidth={1.6} />,
-    permission: PERMISSIONS.empenhosVisualizar,
+    permission: PERMISSIONS.gestaoOrcamentariaVisualizar,
   },
 ]
 
@@ -120,12 +122,28 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton size="lg" asChild>
+            {/* Colapsada, o botão vira 32×32 com padding zero e `overflow-hidden`.
+                Sem `justify-center` o brasão encosta na borda esquerda, e com a
+                altura cheia a palavra UFSC raspa no corte — daí centralizar e
+                encolher um degrau quando o texto ao lado some. */}
+            <SidebarMenuButton
+              size="lg"
+              asChild
+              className="group-data-[collapsible=icon]:justify-center"
+            >
               <a href="#">
-                <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-linear-[150deg] from-sidebar-primary to-[oklch(0.5_0.085_256)] text-sidebar-primary-foreground shadow-sm">
-                  <HugeiconsIcon icon={CommandIcon} strokeWidth={1.6} className="size-4" />
-                </div>
-                <div className="grid flex-1 text-left leading-tight">
+                {/* Mesmo brasão da tela de login. O arquivo é 96×132 (a
+                    palavra UFSC entra embaixo), então a altura manda e a
+                    largura acompanha — declarar 1:1 distorceria. */}
+                <Image
+                  src="/favicon.ico"
+                  alt="UFSC"
+                  width={24}
+                  height={33}
+                  priority
+                  className="h-8 w-auto shrink-0 group-data-[collapsible=icon]:h-7"
+                />
+                <div className="grid flex-1 text-left leading-tight group-data-[collapsible=icon]:hidden">
                   <span className="truncate text-md font-semibold tracking-tight">GFC</span>
                   <span className="truncate text-2xs uppercase tracking-[0.04em] text-muted-foreground">Gestão e Faturamento de Contratos</span>
                 </div>

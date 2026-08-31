@@ -1,10 +1,8 @@
-import {
-  useMutation,
-  useQuery,
-  useQueryClient,
-} from "@tanstack/react-query"
+import { useQuery } from "@tanstack/react-query"
 import { z } from "zod"
 import { apiFetch } from "@/lib/api"
+import { commitmentsKey } from "@/lib/commitments"
+import { useFeedbackMutation } from "@/lib/feedback"
 import {
   optionalDecimal,
   optionalProcess,
@@ -126,22 +124,22 @@ export function useBillings(page: number, pageSize: number) {
 }
 
 export function useCreateBilling() {
-  const queryClient = useQueryClient()
-  return useMutation({
+  return useFeedbackMutation({
     mutationFn: createBilling,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: billingsKey })
-    },
+    action: "criar",
+    entity: "faturamento",
+    // O faturamento desconta a SNE do empenho: a trigger recalcula o saldo, e
+    // as telas que o mostram precisam recarregar junto.
+    invalidate: [billingsKey, commitmentsKey, ["budget"], ["dashboard"]],
   })
 }
 
 export function useArchiveBilling() {
-  const queryClient = useQueryClient()
-  return useMutation({
+  return useFeedbackMutation({
     mutationFn: archiveBilling,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: billingsKey })
-    },
+    action: "arquivar",
+    entity: "faturamento",
+    invalidate: [billingsKey, commitmentsKey, ["budget"], ["dashboard"]],
   })
 }
 
@@ -154,11 +152,10 @@ export function useArchivedBillings(page: number, pageSize: number) {
 }
 
 export function useUnarchiveBilling() {
-  const queryClient = useQueryClient()
-  return useMutation({
+  return useFeedbackMutation({
     mutationFn: unarchiveBilling,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: billingsKey })
-    },
+    action: "desarquivar",
+    entity: "faturamento",
+    invalidate: [billingsKey, commitmentsKey, ["budget"], ["dashboard"]],
   })
 }

@@ -1,17 +1,40 @@
-import {
-  useMutation,
-  useQuery,
-  useQueryClient,
-} from "@tanstack/react-query"
+import { useQuery } from "@tanstack/react-query"
 import { z } from "zod"
 import { apiFetch } from "@/lib/api"
 import { commitmentsKey } from "@/lib/commitments"
+import { useFeedbackMutation } from "@/lib/feedback"
 import { decimalSchema } from "@/lib/validation"
 
 /**
  * Espelha o ReinforcementResponseDto (reforço) do backend.
  * `processNumber` é HERDADO do empenho pai (o reforço não tem processo próprio).
  */
+/**
+ * Etapa de tramitação do reforço. O fluxo anda uma casa por vez e para frente;
+ * voltar (ou pular) exige `reforcos:retroceder_status`.
+ */
+export type ReinforcementStatus = "DGER" | "SE_DCF" | "CONCLUIDO"
+
+export const REINFORCEMENT_STATUS_FLOW: ReinforcementStatus[] = [
+  "DGER",
+  "SE_DCF",
+  "CONCLUIDO",
+]
+
+export const REINFORCEMENT_STATUS_LABEL: Record<ReinforcementStatus, string> = {
+  DGER: "DGER",
+  SE_DCF: "SE/DCF",
+  CONCLUIDO: "Concluído",
+}
+
+/** Próxima etapa do fluxo, ou `null` quando já está na última. */
+export function nextReinforcementStatus(
+  current: ReinforcementStatus
+): ReinforcementStatus | null {
+  const index = REINFORCEMENT_STATUS_FLOW.indexOf(current)
+  return REINFORCEMENT_STATUS_FLOW[index + 1] ?? null
+}
+
 export interface Reinforcement {
   reinforcementId: string
   commitmentId: string
@@ -20,6 +43,7 @@ export interface Reinforcement {
   value: string
   processNumber: string
   reinforcementDate: string
+  status: ReinforcementStatus
   createdAt: string
   updatedAt: string
   /** Data da anulação (null quando ativo). */
@@ -42,6 +66,29 @@ export type CreateReinforcementFormValues = z.infer<
   typeof createReinforcementSchema
 >
 export type CreateReinforcementInput = CreateReinforcementFormValues
+
+/**
+ * O que a tela de edição precisa saber de um reforço.
+ *
+ * Existe porque o formulário é aberto de dois lugares: do painel de reforços,
+ * que tem o `Reinforcement` inteiro, e da listagem de empenhos, onde o reforço
+ * vem resumido dentro do empenho e o processo é o do empenho pai. Pedir o
+ * objeto completo obrigaria a listagem a buscar cada reforço só para editar.
+ */
+export type EditableReinforcement = Pick<
+  Reinforcement,
+  "reinforcementId" | "sne" | "value" | "reinforcementDate" | "status"
+> & { processNumber: string }
+
+/** Edição do reforço: sem empenho (é outro registro) e sem etapa (rota própria). */
+export const updateReinforcementSchema = createReinforcementSchema.omit({
+  commitmentId: true,
+})
+
+export type UpdateReinforcementFormValues = z.infer<
+  typeof updateReinforcementSchema
+>
+export type UpdateReinforcementInput = Partial<UpdateReinforcementFormValues>
 
 export interface ListReinforcementsResponse {
   data: Reinforcement[]
@@ -80,6 +127,26 @@ export function createReinforcement(
   })
 }
 
+export function updateReinforcement(
+  reinforcementId: string,
+  input: UpdateReinforcementInput
+): Promise<Reinforcement> {
+  return apiFetch<Reinforcement>(`/reinforcements/${reinforcementId}`, {
+    method: "PATCH",
+    body: JSON.stringify(input),
+  })
+}
+
+export function changeReinforcementStatus(
+  reinforcementId: string,
+  status: ReinforcementStatus
+): Promise<Reinforcement> {
+  return apiFetch<Reinforcement>(`/reinforcements/${reinforcementId}/status`, {
+    method: "PATCH",
+    body: JSON.stringify({ status }),
+  })
+}
+
 /**
  * Anula o reforço — DEFINITIVO, sem desfazer. O backend só aceita quando o
  * ano do reforço é anterior ao ano atual (senão 422).
@@ -103,24 +170,51 @@ export function useReinforcements(
 }
 
 export function useCreateReinforcement() {
-  const queryClient = useQueryClient()
-  return useMutation({
+  return useFeedbackMutation({
     mutationFn: createReinforcement,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: reinforcementsKey })
-      // o reforço altera o saldo/soma do empenho
-      queryClient.invalidateQueries({ queryKey: commitmentsKey })
-    },
+    action: "criar",
+    entity: "reforço",
+    // O reforço entra no saldo do empenho — a listagem de empenhos mostra a
+    // soma e a SNE do mais recente.
+    invalidate: [reinforcementsKey, commitmentsKey],
+  })
+}
+
+export function useUpdateReinforcement() {
+  return useFeedbackMutation({
+    mutationFn: ({
+      reinforcementId,
+      input,
+    }: {
+      reinforcementId: string
+      input: UpdateReinforcementInput
+    }) => updateReinforcement(reinforcementId, input),
+    action: "editar",
+    entity: "reforço",
+    invalidate: [reinforcementsKey, commitmentsKey, ["budget"], ["dashboard"]],
+  })
+}
+
+export function useChangeReinforcementStatus() {
+  return useFeedbackMutation({
+    mutationFn: ({
+      reinforcementId,
+      status,
+    }: {
+      reinforcementId: string
+      status: ReinforcementStatus
+    }) => changeReinforcementStatus(reinforcementId, status),
+    action: "alterar-status",
+    entity: "reforço",
+    invalidate: [reinforcementsKey, commitmentsKey],
   })
 }
 
 export function useAnnulReinforcement() {
-  const queryClient = useQueryClient()
-  return useMutation({
+  return useFeedbackMutation({
     mutationFn: annulReinforcement,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: reinforcementsKey })
-      queryClient.invalidateQueries({ queryKey: commitmentsKey })
-    },
+    action: "anular",
+    entity: "reforço",
+    invalidate: [reinforcementsKey, commitmentsKey, ["budget"], ["dashboard"]],
   })
 }

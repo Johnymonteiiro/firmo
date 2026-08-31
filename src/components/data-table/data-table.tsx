@@ -4,6 +4,7 @@ import * as React from "react"
 import {
   type ColumnDef,
   type ColumnFiltersState,
+  type RowData,
   type SortingState,
   getCoreRowModel,
   getFacetedRowModel,
@@ -22,10 +23,43 @@ import {
   DataTableToolbar,
   type DataTableFilter,
 } from "@/components/data-table/data-table-toolbar"
+import {
+  ExportCsvButton,
+  type ExportCsvConfig,
+} from "@/components/data-table/export-csv-button"
+
+/**
+ * Coluna que existe só para o filtro. A augmentação vive aqui, e não no
+ * `reui/data-grid` (código de terceiro que a gente não quer editar) —
+ * declarações de módulo se fundem entre arquivos.
+ */
+declare module "@tanstack/react-table" {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  interface ColumnMeta<TData extends RowData, TValue> {
+    filterOnly?: boolean
+  }
+}
 
 /** id resolvido de uma coluna (id explícito ou accessorKey). */
 function columnId<TData>(col: ColumnDef<TData>): string | undefined {
   return col.id ?? (col as { accessorKey?: string }).accessorKey
+}
+
+/**
+ * Colunas que existem só para alimentar um filtro (uma faixa derivada, por
+ * exemplo) nascem escondidas: entram no `getFacetedUniqueValues` do mesmo
+ * jeito, sem ocupar largura na tabela.
+ */
+function hiddenFilterColumns<TData>(
+  columns: ColumnDef<TData>[]
+): Record<string, boolean> {
+  const hidden: Record<string, boolean> = {}
+  for (const col of columns) {
+    const meta = col.meta as { filterOnly?: boolean } | undefined
+    const id = columnId(col)
+    if (meta?.filterOnly && id) hidden[id] = false
+  }
+  return hidden
 }
 
 export interface DataTableProps<TData extends object> {
@@ -37,6 +71,11 @@ export interface DataTableProps<TData extends object> {
   filters?: DataTableFilter[]
   /** Conteúdo à direita da toolbar (ex.: botão "Novo"). */
   actions?: React.ReactNode
+  /**
+   * Habilita o botão "Exportar CSV" à esquerda das ações. Exporta as linhas
+   * filtradas — o que a pessoa está vendo, não a base inteira.
+   */
+  exportCsv?: ExportCsvConfig<TData>
   emptyMessage?: string
   initialPageSize?: number
   /** Colunas redimensionáveis. Quando false, a tabela ocupa toda a largura (ideal p/ poucas colunas). */
@@ -55,6 +94,7 @@ export function DataTable<TData extends object>({
   searchPlaceholder,
   filters,
   actions,
+  exportCsv,
   emptyMessage = "Nenhum registro encontrado.",
   initialPageSize = 10,
   resizable = true,
@@ -82,6 +122,11 @@ export function DataTable<TData extends object>({
     }
   }, [columns, pinnedEnds])
 
+  const columnVisibility = React.useMemo(
+    () => hiddenFilterColumns(columns),
+    [columns]
+  )
+
   const table = useReactTable({
     data,
     columns,
@@ -90,7 +135,7 @@ export function DataTable<TData extends object>({
     columnResizeMode: "onChange",
     enableColumnPinning: pinnedEnds,
     defaultColumn: { minSize: 60 },
-    initialState: { columnPinning },
+    initialState: { columnPinning, columnVisibility },
     state: { sorting, columnFilters, globalFilter, pagination },
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
@@ -133,7 +178,17 @@ export function DataTable<TData extends object>({
             searchPlaceholder={searchPlaceholder}
             filters={filters}
           />
-          {actions ?? null}
+          <div className="flex items-center gap-2.5">
+            {exportCsv ? (
+              <ExportCsvButton
+                rows={table
+                  .getFilteredRowModel()
+                  .rows.map((row) => row.original)}
+                config={exportCsv}
+              />
+            ) : null}
+            {actions ?? null}
+          </div>
         </div>
 
         <Card className="w-full min-w-0 gap-0 overflow-hidden border-0 py-0 shadow-md">

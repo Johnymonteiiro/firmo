@@ -18,16 +18,30 @@ export const PERMISSIONS = {
 
   empenhosVisualizar: "empenhos:visualizar",
   empenhosCriar: "empenhos:criar",
+  empenhosEditar: "empenhos:editar",
   empenhosArquivar: "empenhos:arquivar",
 
   reforcosVisualizar: "reforcos:visualizar",
   reforcosCriar: "reforcos:criar",
+  reforcosEditar: "reforcos:editar",
+  reforcosAlterarStatus: "reforcos:alterar_status",
+  /** Só o administrador: libera voltar e pular etapas da tramitação. */
+  reforcosRetrocederStatus: "reforcos:retroceder_status",
   reforcosAnular: "reforcos:anular",
 
   faturamentosVisualizar: "faturamentos:visualizar",
   faturamentosCriar: "faturamentos:criar",
   faturamentosEditar: "faturamentos:editar",
   faturamentosArquivar: "faturamentos:arquivar",
+
+  naoContinuadosVisualizar: "nao_continuados:visualizar",
+  naoContinuadosCriar: "nao_continuados:criar",
+  naoContinuadosEditar: "nao_continuados:editar",
+  naoContinuadosArquivar: "nao_continuados:arquivar",
+
+  dashboardVisualizar: "dashboard:visualizar",
+
+  gestaoOrcamentariaVisualizar: "gestao_orcamentaria:visualizar",
 
   auditoriaVisualizar: "auditoria:visualizar",
 

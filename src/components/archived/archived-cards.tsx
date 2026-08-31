@@ -1,8 +1,8 @@
 "use client"
 
 import * as React from "react"
-import { toast } from "sonner"
 
+import { PendingLabel } from "@/components/form/pending-label"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import {
@@ -12,7 +12,6 @@ import {
   InputGroupInput,
 } from "@/components/ui/input-group"
 import { HistoryDrawer } from "@/components/history/history-drawer"
-import { ApiError } from "@/lib/api"
 import { formatDate } from "@/lib/format"
 import type { AuditEntity } from "@/lib/audit"
 import { cn } from "@/lib/utils"
@@ -25,8 +24,6 @@ import {
   ArrowLeft01Icon,
   ArrowRight01Icon,
 } from "@hugeicons/core-free-icons"
-
-const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1)
 
 export interface ArchivedCardField {
   label: string
@@ -74,18 +71,12 @@ export function ArchivedCard({
   const [pending, setPending] = React.useState(false)
   const [historyOpen, setHistoryOpen] = React.useState(false)
 
+  // O aviso vem do hook de mutação — aqui só o estado do botão.
   function handleUnarchive() {
     if (!onUnarchive) return
     setPending(true)
     Promise.resolve(onUnarchive())
-      .then(() => toast.success(`${capitalize(entityLabel)} desarquivado.`))
-      .catch((err) =>
-        toast.error(
-          err instanceof ApiError
-            ? err.message
-            : `Não foi possível desarquivar o ${entityLabel}.`
-        )
-      )
+      .catch(() => {})
       .finally(() => setPending(false))
   }
 
@@ -137,8 +128,10 @@ export function ArchivedCard({
                 onClick={handleUnarchive}
                 disabled={pending}
               >
-                <HugeiconsIcon icon={ArrowUp01Icon} strokeWidth={2} />
-                Desarquivar
+                <PendingLabel pending={pending} pendingLabel="Restaurando…">
+                  <HugeiconsIcon icon={ArrowUp01Icon} strokeWidth={2} />
+                  Desarquivar
+                </PendingLabel>
               </Button>
             ) : null}
             {history ? (

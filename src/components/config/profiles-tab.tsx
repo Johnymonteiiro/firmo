@@ -9,14 +9,21 @@ import {
   type ProfileFormMode,
 } from "@/components/config/profile-form-dialog"
 import { ProfileUsersDialog } from "@/components/config/profile-users-dialog"
+import {
+  DragHandle,
+  SortableGrid,
+  SortableItem,
+} from "@/components/dnd/sortable-grid"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { useOrderedIds } from "@/hooks/use-ordered-ids"
 import { ApiError } from "@/lib/api"
 import {
   useDeactivateProfile,
   type ProfileWithPermissions,
 } from "@/lib/config"
 import { PERMISSIONS, useCan } from "@/lib/permissions"
+import { cn } from "@/lib/utils"
 import { HugeiconsIcon } from "@hugeicons/react"
 import {
   Add01Icon,
@@ -32,6 +39,9 @@ import {
  * cada um fica na aba ao lado; daqui sai o atalho que abre ela já no perfil
  * certo.
  */
+/** Ordem dos cards é preferência de quem usa — fica no navegador. */
+const ORDER_KEY = "firmo:profiles-order"
+
 export function ProfilesTab({
   profiles,
   onEditMatrix,
@@ -41,6 +51,16 @@ export function ProfilesTab({
 }) {
   const deactivate = useDeactivateProfile()
   const canManage = useCan(PERMISSIONS.configuracoesGerenciarPerfis)
+
+  const byId = React.useMemo(
+    () => new Map(profiles.map((item) => [item.profile.profileId, item])),
+    [profiles]
+  )
+  const profileIds = React.useMemo(
+    () => profiles.map((item) => item.profile.profileId),
+    [profiles]
+  )
+  const [ordered, setOrder] = useOrderedIds(ORDER_KEY, profileIds)
 
   const [formMode, setFormMode] = React.useState<ProfileFormMode | null>(null)
   const [target, setTarget] = React.useState<ProfileWithPermissions | null>(
@@ -95,14 +115,31 @@ export function ProfilesTab({
         ) : null}
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-        {profiles.map((item) => (
+      <SortableGrid
+        ids={ordered}
+        onReorder={setOrder}
+        className="grid items-start gap-3 sm:grid-cols-2 xl:grid-cols-3"
+      >
+        {ordered.map((profileId) => {
+          const item = byId.get(profileId)
+          if (!item) return null
+
+          return (
+            <SortableItem key={profileId} id={profileId}>
+              {({ handle, isDragging }) => (
           <article
-            key={item.profile.profileId}
-            className="flex flex-col gap-3 rounded-xl border bg-card p-4"
+            className={cn(
+              "flex h-full flex-col gap-3 rounded-xl border bg-card p-4",
+              isDragging && "ring-3 ring-ring/40"
+            )}
           >
             <div className="flex flex-col gap-1">
               <div className="flex flex-wrap items-center gap-1.5">
+                <DragHandle
+                  label={`Reordenar ${item.profile.name}`}
+                  className="-ml-1.5"
+                  {...handle}
+                />
                 <h3 className="text-sm font-medium">{item.profile.name}</h3>
                 {item.profile.isSystem ? (
                   <Badge variant="secondary">sistema</Badge>
@@ -178,8 +215,11 @@ export function ProfilesTab({
               ) : null}
             </div>
           </article>
-        ))}
-      </div>
+              )}
+            </SortableItem>
+          )
+        })}
+      </SortableGrid>
 
       <ProfileFormDialog
         mode={formMode ?? "create"}

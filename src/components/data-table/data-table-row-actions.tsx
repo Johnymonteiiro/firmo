@@ -1,7 +1,6 @@
 "use client"
 
 import * as React from "react"
-import { toast } from "sonner"
 
 import { ConfirmDialog } from "@/components/confirm-dialog"
 import { HistoryDrawer } from "@/components/history/history-drawer"
@@ -16,7 +15,6 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { ApiError } from "@/lib/api"
 import type { AuditEntity } from "@/lib/audit"
 import { cn } from "@/lib/utils"
 import { HugeiconsIcon } from "@hugeicons/react"
@@ -74,11 +72,8 @@ export interface DataTableRowActionsProps<TStatus extends string = ContractRowSt
     label: string
     confirmTitle: string
     confirmDescription: string
-    successToast: string
   }
 }
-
-const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1)
 
 /** Ações de linha: Editar (opcional) + Arquivar (com confirmação). */
 export function DataTableRowActions<TStatus extends string = ContractRowStatus>({
@@ -101,36 +96,20 @@ export function DataTableRowActions<TStatus extends string = ContractRowStatus>(
   const options =
     statusOptions ?? (CONTRACT_STATUS_OPTIONS as StatusOption<TStatus>[])
 
+  // Sem toast aqui: quem avisa é o hook de mutação (`useFeedbackMutation`),
+  // para a mesma ação dizer a mesma coisa venha ela da linha da tabela, do
+  // card de arquivados ou de um diálogo. Aqui só sobra o que é da tela: o
+  // estado do botão e fechar a confirmação quando deu certo.
   function handleChangeStatus(status: TStatus) {
-    Promise.resolve(onChangeStatus?.(status))
-      .then(() => toast.success(`Status do ${entityLabel} alterado.`))
-      .catch((err) =>
-        toast.error(
-          err instanceof ApiError
-            ? err.message
-            : `Não foi possível alterar o status do ${entityLabel}.`
-        )
-      )
+    void Promise.resolve(onChangeStatus?.(status)).catch(() => {})
   }
 
   function handleArchive() {
     if (!onArchive) return
     setIsArchiving(true)
     Promise.resolve(onArchive())
-      .then(() => {
-        toast.success(
-          destructiveAction?.successToast ??
-            `${capitalize(entityLabel)} arquivado.`
-        )
-        setConfirmOpen(false)
-      })
-      .catch((err) => {
-        toast.error(
-          err instanceof ApiError
-            ? err.message
-            : `Não foi possível concluir a ação no ${entityLabel}.`
-        )
-      })
+      .then(() => setConfirmOpen(false))
+      .catch(() => {})
       .finally(() => setIsArchiving(false))
   }
 
