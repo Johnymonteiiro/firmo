@@ -114,6 +114,20 @@ export const userColumns: ColumnDef<User>[] = [
     ),
     size: 130,
   },
+  {
+    // Só filtro: o domínio do e-mail separa @ufsc.br de contas externas, que
+    // é a pergunta que se faz na lista de usuários.
+    id: "emailDomain",
+    accessorFn: (row) => row.email.split("@")[1] ?? "—",
+    filterFn: inArrayFilter,
+    meta: { filterOnly: true },
+  },
+  {
+    id: "createdYear",
+    accessorFn: (row) => row.createdAt.slice(0, 4),
+    filterFn: inArrayFilter,
+    meta: { filterOnly: true },
+  },
   actionsColumn(({ row }) => <UserActionsCell user={row.original} />),
 ]
 

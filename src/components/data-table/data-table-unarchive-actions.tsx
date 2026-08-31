@@ -1,7 +1,6 @@
 "use client"
 
 import * as React from "react"
-import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -10,7 +9,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { ApiError } from "@/lib/api"
 import { HugeiconsIcon } from "@hugeicons/react"
 import {
   MoreHorizontalCircle01Icon,
@@ -18,30 +16,20 @@ import {
 } from "@hugeicons/core-free-icons"
 
 export interface DataTableUnarchiveActionsProps {
-  entityLabel: string
   onUnarchive: () => Promise<unknown>
 }
 
-const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1)
-
 /** Ação de linha para itens arquivados: Desarquivar. */
 export function DataTableUnarchiveActions({
-  entityLabel,
   onUnarchive,
 }: DataTableUnarchiveActionsProps) {
   const [pending, setPending] = React.useState(false)
 
+  // O aviso vem do hook de mutação; aqui só o estado do item do menu.
   function handleUnarchive() {
     setPending(true)
     Promise.resolve(onUnarchive())
-      .then(() => toast.success(`${capitalize(entityLabel)} desarquivado.`))
-      .catch((err) =>
-        toast.error(
-          err instanceof ApiError
-            ? err.message
-            : `Não foi possível desarquivar o ${entityLabel}.`
-        )
-      )
+      .catch(() => {})
       .finally(() => setPending(false))
   }
 

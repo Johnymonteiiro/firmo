@@ -2,6 +2,7 @@
 
 import * as React from "react"
 
+import { PendingLabel } from "@/components/form/pending-label"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -23,6 +24,8 @@ export interface FormDialogProps {
   isPending?: boolean
   errorMessage?: string | null
   submitLabel?: string
+  /** Texto do botão enquanto salva (default: "Salvando…"). */
+  pendingLabel?: string
   /** Itens do form (grid de 2 colunas). */
   children: React.ReactNode
   contentClassName?: string
@@ -39,6 +42,7 @@ export function FormDialog({
   isPending,
   errorMessage,
   submitLabel = "Salvar",
+  pendingLabel = "Salvando…",
   children,
   contentClassName,
 }: FormDialogProps) {
@@ -76,7 +80,9 @@ export function FormDialog({
             Cancelar
           </Button>
           <Button type="submit" form={formId} disabled={isPending}>
-            {isPending ? "Salvando..." : submitLabel}
+            <PendingLabel pending={isPending} pendingLabel={pendingLabel}>
+              {submitLabel}
+            </PendingLabel>
           </Button>
         </DialogFooter>
       </DialogContent>

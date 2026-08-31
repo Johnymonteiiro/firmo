@@ -8,6 +8,8 @@ export type AuditEntity =
   | "reinforcement"
   | "billing"
   | "user"
+  | "creditor"
+  | "movement"
 
 /** Espelha o AuditLogResponseDto do backend. */
 export interface AuditLog {

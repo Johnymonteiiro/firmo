@@ -50,9 +50,15 @@ export const loginSchema = z.object({
 })
 export type LoginFormValues = z.infer<typeof loginSchema>
 
-/** `confirm` só existe no formulário — o backend não recebe esse campo. */
+/**
+ * `confirm` só existe no formulário — o backend não recebe esse campo.
+ *
+ * O tipo de entrada é declarado junto com o de saída: `z.ZodType<Saída>`
+ * sozinho deixa a entrada como `unknown`, e o resolver do react-hook-form
+ * recusa um schema cuja entrada não casa com os campos do formulário.
+ */
 const withConfirmation = <T extends { newPassword: string }>(
-  schema: z.ZodType<T & { confirmPassword: string }>
+  schema: z.ZodType<T & { confirmPassword: string }, T & { confirmPassword: string }>
 ) =>
   schema.refine((data) => data.newPassword === data.confirmPassword, {
     message: "As senhas não conferem",

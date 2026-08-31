@@ -1,7 +1,10 @@
 "use client"
 
 import { DataTable } from "@/components/data-table/data-table"
-import { contractColumns } from "@/components/contracts/contract-columns"
+import {
+  contractColumns,
+  DUE_BUCKETS,
+} from "@/components/contracts/contract-columns"
 import { NewContractDialog } from "@/components/contracts/new-contract-dialog"
 import { useContracts } from "@/lib/contracts"
 import { PERMISSIONS, useCan } from "@/lib/permissions"
@@ -18,7 +21,13 @@ export function ContractsDataTable() {
       isLoading={isLoading}
       getRowId={(c) => c.contractId}
       searchPlaceholder="Buscar contratos..."
-      filters={[{ columnId: "status", title: "Status" }]}
+      filters={[
+        { columnId: "status", title: "Status" },
+        { columnId: "dueBucket", title: "Vencimento", order: [...DUE_BUCKETS] },
+        { columnId: "companyFilter", title: "Empresa" },
+        { columnId: "managerFilter", title: "Gestor" },
+        { columnId: "hasAdjustment", title: "Reajuste" },
+      ]}
       actions={canCreate ? <NewContractDialog /> : null}
       emptyMessage={
         isError

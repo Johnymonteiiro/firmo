@@ -3,6 +3,7 @@
 import * as React from "react"
 import { toast } from "sonner"
 
+import { PendingLabel } from "@/components/form/pending-label"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import {
@@ -133,7 +134,12 @@ export function UserProfilesDialog({
             }
             onClick={handleSave}
           >
-            {setUserProfiles.isPending ? "Salvando..." : "Salvar"}
+            <PendingLabel
+              pending={setUserProfiles.isPending}
+              pendingLabel="Salvando…"
+            >
+              Salvar
+            </PendingLabel>
           </Button>
         </DialogFooter>
       </DialogContent>

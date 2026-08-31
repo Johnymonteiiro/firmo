@@ -1,5 +1,6 @@
 "use client"
 
+import { PendingLabel } from "@/components/form/pending-label"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -16,6 +17,8 @@ export interface ConfirmDialogProps {
   title: string
   description?: string
   confirmLabel?: string
+  /** Texto do botão enquanto executa (default: "Aguarde…"). */
+  pendingLabel?: string
   destructive?: boolean
   isPending?: boolean
   onConfirm: () => void
@@ -28,6 +31,7 @@ export function ConfirmDialog({
   title,
   description,
   confirmLabel = "Confirmar",
+  pendingLabel = "Aguarde…",
   destructive,
   isPending,
   onConfirm,
@@ -55,7 +59,9 @@ export function ConfirmDialog({
             onClick={onConfirm}
             disabled={isPending}
           >
-            {isPending ? "Aguarde..." : confirmLabel}
+            <PendingLabel pending={isPending} pendingLabel={pendingLabel}>
+              {confirmLabel}
+            </PendingLabel>
           </Button>
         </DialogFooter>
       </DialogContent>

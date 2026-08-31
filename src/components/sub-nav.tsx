@@ -81,12 +81,57 @@ function Group({ item }: { item: SubNavItem }) {
   )
 }
 
-export function SubNav({ items }: { items: SubNavItem[] }) {
+export function SubNav({
+  items,
+  sectionTitle,
+}: {
+  items: SubNavItem[]
+  /**
+   * Nome da seção, já exibido no header. O grupo que se chama igual não
+   * repete o nome: mostra as folhas direto, e o caminho lido pela pessoa vira
+   * "Configurações → Permissões" em vez de repetir a mesma palavra duas vezes.
+   */
+  sectionTitle?: string
+}) {
   return (
     <aside className="flex w-60 shrink-0 flex-col gap-1 overflow-y-auto bg-(--subnav) px-3 py-4">
-      {items.map((item) => (
-        <Group key={item.title} item={item} />
-      ))}
+      {items.map((item) =>
+        isSectionEcho(item, sectionTitle) ? (
+          <React.Fragment key={item.title}>
+            {item.items?.map((child) =>
+              child.items?.length ? (
+                <React.Fragment key={child.title}>
+                  <Subhead title={child.title} />
+                  {child.items.map((leaf) => (
+                    <Leaf key={leaf.title} item={leaf} deep />
+                  ))}
+                </React.Fragment>
+              ) : (
+                <Leaf key={child.title} item={child} />
+              )
+            )}
+          </React.Fragment>
+        ) : (
+          <Group key={item.title} item={item} />
+        )
+      )}
     </aside>
   )
 }
+
+/**
+ * Grupo que só repete o nome da seção. Compara sem acento e sem caixa porque
+ * o header e a navegação são escritos em lugares diferentes — "Configurações"
+ * e "configuracoes" são o mesmo nome para quem lê.
+ */
+function isSectionEcho(item: SubNavItem, sectionTitle?: string): boolean {
+  if (!sectionTitle || !item.items?.length) return false
+  return normalize(item.title) === normalize(sectionTitle)
+}
+
+const normalize = (text: string): string =>
+  text
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim()
+    .toLowerCase()

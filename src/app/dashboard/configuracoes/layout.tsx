@@ -1,6 +1,5 @@
-import { ThemeToggle } from "@/components/theme-toggle"
-import { SubNav, type SubNavItem } from "@/components/sub-nav"
-import { SidebarTrigger } from "@/components/ui/sidebar"
+import { SectionShell } from "@/components/section-shell"
+import { type SubNavItem } from "@/components/sub-nav"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { Settings02Icon } from "@hugeicons/core-free-icons"
 
@@ -22,20 +21,8 @@ export default function ConfiguracoesLayout({
   children: React.ReactNode
 }) {
   return (
-    <>
-      <header className="flex h-16 shrink-0 items-center gap-2 px-6">
-        <SidebarTrigger className="-ml-1" />
-        <h1 className="text-lg font-semibold tracking-tight">Configurações</h1>
-        <div className="ml-auto">
-          <ThemeToggle />
-        </div>
-      </header>
-      <div className="flex flex-1 min-w-0 overflow-hidden">
-        <SubNav items={navItems} />
-        <div className="flex-1 min-w-0 overflow-x-hidden overflow-y-auto px-6 pb-7 pt-2">
-          {children}
-        </div>
-      </div>
-    </>
+    <SectionShell title="Configurações" navItems={navItems}>
+      {children}
+    </SectionShell>
   )
 }

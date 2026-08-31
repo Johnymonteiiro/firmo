@@ -1,10 +1,7 @@
-import {
-  useMutation,
-  useQuery,
-  useQueryClient,
-} from "@tanstack/react-query"
+import { useQuery } from "@tanstack/react-query"
 import { z } from "zod"
 import { apiFetch } from "@/lib/api"
+import { useFeedbackMutation } from "@/lib/feedback"
 import {
   contractNumberSchema,
   decimalSchema,
@@ -262,18 +259,16 @@ export function useContract(contractId: string | null) {
 }
 
 export function useCreateContract() {
-  const queryClient = useQueryClient()
-  return useMutation({
+  return useFeedbackMutation({
     mutationFn: createContract,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: contractsKey })
-    },
+    action: "criar",
+    entity: "contrato",
+    invalidate: [contractsKey],
   })
 }
 
 export function useUpdateContract() {
-  const queryClient = useQueryClient()
-  return useMutation({
+  return useFeedbackMutation({
     mutationFn: ({
       contractId,
       input,
@@ -281,15 +276,14 @@ export function useUpdateContract() {
       contractId: string
       input: UpdateContractInput
     }) => updateContract(contractId, input),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: contractsKey })
-    },
+    action: "editar",
+    entity: "contrato",
+    invalidate: [contractsKey],
   })
 }
 
 export function useChangeContractStatus() {
-  const queryClient = useQueryClient()
-  return useMutation({
+  return useFeedbackMutation({
     mutationFn: ({
       contractId,
       status,
@@ -297,19 +291,18 @@ export function useChangeContractStatus() {
       contractId: string
       status: ContractStatusTarget
     }) => changeContractStatus(contractId, status),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: contractsKey })
-    },
+    action: "alterar-status",
+    entity: "contrato",
+    invalidate: [contractsKey],
   })
 }
 
 export function useArchiveContract() {
-  const queryClient = useQueryClient()
-  return useMutation({
+  return useFeedbackMutation({
     mutationFn: archiveContract,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: contractsKey })
-    },
+    action: "arquivar",
+    entity: "contrato",
+    invalidate: [contractsKey],
   })
 }
 
@@ -322,11 +315,10 @@ export function useArchivedContracts(page: number, pageSize: number) {
 }
 
 export function useUnarchiveContract() {
-  const queryClient = useQueryClient()
-  return useMutation({
+  return useFeedbackMutation({
     mutationFn: unarchiveContract,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: contractsKey })
-    },
+    action: "desarquivar",
+    entity: "contrato",
+    invalidate: [contractsKey],
   })
 }

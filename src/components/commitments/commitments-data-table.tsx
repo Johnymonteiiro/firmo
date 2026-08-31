@@ -3,7 +3,10 @@
 import * as React from "react"
 
 import { DataTable } from "@/components/data-table/data-table"
-import { commitmentColumns } from "@/components/commitments/commitment-columns"
+import {
+  commitmentColumns,
+  CONSUMPTION_BUCKETS,
+} from "@/components/commitments/commitment-columns"
 import { NewCommitmentDialog } from "@/components/commitments/new-commitment-dialog"
 import { useCommitments } from "@/lib/commitments"
 import { useContracts } from "@/lib/contracts"
@@ -33,6 +36,18 @@ export function CommitmentsDataTable() {
       isLoading={isLoading}
       getRowId={(c) => c.commitmentId}
       searchPlaceholder="Buscar empenhos..."
+      filters={[
+        { columnId: "status", title: "Status" },
+        { columnId: "contractFilter", title: "Contrato" },
+        { columnId: "companyFilter", title: "Empresa" },
+        { columnId: "sneYear", title: "Ano" },
+        {
+          columnId: "consumption",
+          title: "Consumo",
+          order: [...CONSUMPTION_BUCKETS],
+        },
+        { columnId: "reinforcementStatus", title: "Etapa do reforço" },
+      ]}
       actions={canCreate ? <NewCommitmentDialog /> : null}
       emptyMessage={
         isError

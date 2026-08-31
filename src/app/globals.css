@@ -49,6 +49,9 @@
   --color-chart-4: var(--chart-4);
   --color-chart-3: var(--chart-3);
   --color-chart-2: var(--chart-2);
+  --color-viz-cat-1: var(--viz-cat-1);
+  --color-viz-cat-2: var(--viz-cat-2);
+  --color-viz-cat-3: var(--viz-cat-3);
   --color-chart-1: var(--chart-1);
   --color-ring: var(--ring);
   --color-input: var(--input);
@@ -101,5 +104,41 @@
   .font-mono,
   .tabular-nums {
     font-feature-settings: "tnum";
+  }
+
+  /*
+   * O Tailwind v4 mudou o preflight: `button` passou a nascer com
+   * `cursor: default`, seguindo o padrão do navegador. Aqui a regra é a
+   * oposta — o que é clicável mostra a mãozinha.
+   *
+   * A lista cobre os elementos nativos e os papéis ARIA que o Radix aplica
+   * nos gatilhos (menu, aba, opção, switch…), que são `div`/`span` e por isso
+   * não herdariam nada. Desabilitado fica de fora: `pointer` num controle que
+   * não responde é promessa falsa — o `disabled:pointer-events-none` dos
+   * componentes já bloqueia o clique, e o cursor tem de contar a mesma coisa.
+   */
+  button,
+  summary,
+  /* Só as labels que apontam para um controle (`for`): clicar nelas aciona o
+     controle. As do `Field`, que só rotulam um input de texto, não usam `for`
+     e continuam com o cursor de texto. */
+  label[for],
+  [role="button"],
+  [role="tab"],
+  [role="option"],
+  [role="menuitem"],
+  [role="menuitemcheckbox"],
+  [role="menuitemradio"],
+  [role="checkbox"],
+  [role="radio"],
+  [role="switch"],
+  [role="combobox"] {
+    cursor: pointer;
+  }
+
+  button:disabled,
+  [aria-disabled="true"],
+  [data-disabled] {
+    cursor: default;
   }
 }

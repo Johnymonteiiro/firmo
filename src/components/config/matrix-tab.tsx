@@ -200,6 +200,7 @@ export function MatrixTab({
         title="Salvar a matriz deste perfil?"
         description={`${selected.userCount} usuário(s) com o perfil ${selected.profile.name} terão o acesso alterado em até um minuto.`}
         confirmLabel="Salvar"
+        pendingLabel="Salvando…"
         isPending={savePermissions.isPending}
         onConfirm={handleSave}
       />

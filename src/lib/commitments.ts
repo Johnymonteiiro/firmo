@@ -1,10 +1,8 @@
-import {
-  useMutation,
-  useQuery,
-  useQueryClient,
-} from "@tanstack/react-query"
+import { useQuery } from "@tanstack/react-query"
 import { z } from "zod"
 import { apiFetch } from "@/lib/api"
+import { useFeedbackMutation } from "@/lib/feedback"
+import type { ReinforcementStatus } from "@/lib/reinforcements"
 import {
   decimalSchema,
   processSchema,
@@ -26,6 +24,8 @@ export interface CommitmentReinforcement {
   sne: string
   value: string
   reinforcementDate: string
+  /** Etapa da tramitação — a listagem mostra a etapa de cada reforço. */
+  status: ReinforcementStatus
 }
 
 export interface Commitment {
@@ -62,6 +62,24 @@ export const createCommitmentSchema = z.object({
 
 export type CreateCommitmentFormValues = z.infer<typeof createCommitmentSchema>
 export type CreateCommitmentInput = CreateCommitmentFormValues
+
+/**
+ * Edição do empenho. O contrato não entra: remanejar o empenho para outro
+ * contrato mudaria saldo, gestão orçamentária e faturamento de uma vez — e o
+ * backend recusa o campo. A empresa entra porque é snapshot do contrato na
+ * data do empenho, e pode ter sido gravada errada.
+ */
+export const updateCommitmentSchema = z.object({
+  contractedCompany: z.string().trim().min(1, "Informe a empresa"),
+  sne: sneSchema(),
+  sneDate: z.string().min(1, "Informe a data do SNE"),
+  processNumber: processSchema(),
+  siafi: siafiSchema(),
+  initialValue: decimalSchema(),
+})
+
+export type UpdateCommitmentFormValues = z.infer<typeof updateCommitmentSchema>
+export type UpdateCommitmentInput = Partial<UpdateCommitmentFormValues>
 
 export interface ListCommitmentsResponse {
   data: Commitment[]
@@ -101,6 +119,16 @@ export function createCommitment(
 ): Promise<{ commitmentId: string }> {
   return apiFetch<{ commitmentId: string }>("/commitments", {
     method: "POST",
+    body: JSON.stringify(input),
+  })
+}
+
+export function updateCommitment(
+  commitmentId: string,
+  input: UpdateCommitmentInput
+): Promise<Commitment> {
+  return apiFetch<Commitment>(`/commitments/${commitmentId}`, {
+    method: "PATCH",
     body: JSON.stringify(input),
   })
 }
@@ -148,22 +176,37 @@ export function useUserCommitments(userId: string | null, pageSize = 100) {
 }
 
 export function useCreateCommitment() {
-  const queryClient = useQueryClient()
-  return useMutation({
+  return useFeedbackMutation({
     mutationFn: createCommitment,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: commitmentsKey })
-    },
+    action: "criar",
+    entity: "empenho",
+    invalidate: [commitmentsKey],
+  })
+}
+
+export function useUpdateCommitment() {
+  return useFeedbackMutation({
+    mutationFn: ({
+      commitmentId,
+      input,
+    }: {
+      commitmentId: string
+      input: UpdateCommitmentInput
+    }) => updateCommitment(commitmentId, input),
+    action: "editar",
+    entity: "empenho",
+    // Mudar o valor inicial move o saldo, que a gestão orçamentária e o
+    // painel somam por conta própria.
+    invalidate: [commitmentsKey, ["budget"], ["dashboard"]],
   })
 }
 
 export function useArchiveCommitment() {
-  const queryClient = useQueryClient()
-  return useMutation({
+  return useFeedbackMutation({
     mutationFn: archiveCommitment,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: commitmentsKey })
-    },
+    action: "arquivar",
+    entity: "empenho",
+    invalidate: [commitmentsKey],
   })
 }
 
@@ -176,11 +219,10 @@ export function useArchivedCommitments(page: number, pageSize: number) {
 }
 
 export function useUnarchiveCommitment() {
-  const queryClient = useQueryClient()
-  return useMutation({
+  return useFeedbackMutation({
     mutationFn: unarchiveCommitment,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: commitmentsKey })
-    },
+    action: "desarquivar",
+    entity: "empenho",
+    invalidate: [commitmentsKey],
   })
 }

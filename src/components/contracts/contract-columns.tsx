@@ -198,8 +198,47 @@ export const contractColumns: ColumnDef<Contract>[] = [
     ),
     size: 180,
   },
+  {
+    // Só filtro: a coluna "Dias Rest." continua mostrando o número e
+    // ordenando por ele; a faixa é para escolher no filtro.
+    id: "dueBucket",
+    accessorFn: (row) => dueBucket(row),
+    filterFn: inArrayFilter,
+    meta: { filterOnly: true },
+  },
+  {
+    id: "companyFilter",
+    accessorFn: (row) => row.company,
+    filterFn: inArrayFilter,
+    meta: { filterOnly: true },
+  },
+  {
+    id: "managerFilter",
+    accessorFn: (row) => row.managers.map((ref) => ref.name).join(", "),
+    filterFn: inArrayFilter,
+    meta: { filterOnly: true },
+  },
   actionsColumn(({ row }) => <ContractActionsCell contract={row.original} />),
 ]
+
+/** Rótulos da faixa de vencimento, na ordem em que aparecem no filtro. */
+export const DUE_BUCKETS = [
+  "Vencido",
+  "Até 30 dias",
+  "31 a 60 dias",
+  "61 a 90 dias",
+  "Mais de 90 dias",
+  "Encerrado",
+] as const
+
+function dueBucket(contract: Contract): string {
+  if (getDisplayStatus(contract) === "ENCERRADO") return "Encerrado"
+  if (contract.isExpired || contract.daysRemaining < 0) return "Vencido"
+  if (contract.daysRemaining <= 30) return "Até 30 dias"
+  if (contract.daysRemaining <= 60) return "31 a 60 dias"
+  if (contract.daysRemaining <= 90) return "61 a 90 dias"
+  return "Mais de 90 dias"
+}
 
 function ContractActionsCell({ contract }: { contract: Contract }) {
   const router = useRouter()

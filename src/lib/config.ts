@@ -61,6 +61,8 @@ export const MODULE_LABELS: Record<string, string> = {
   usuarios: "Usuários",
   sessao: "Sessão",
   configuracoes: "Configurações",
+  nao_continuados: "Não continuados",
+  gestao_orcamentaria: "Gestão orçamentária",
 }
 
 /** Módulo que ainda não tem rótulo aparece pelo próprio nome, capitalizado. */

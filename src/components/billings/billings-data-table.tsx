@@ -33,6 +33,12 @@ export function BillingsDataTable() {
       isLoading={isLoading}
       getRowId={(b) => b.billingId}
       searchPlaceholder="Buscar faturamentos..."
+      filters={[
+        { columnId: "contractFilter", title: "Contrato" },
+        { columnId: "companyFilter", title: "Contratada" },
+        { columnId: "periodYear", title: "Ano" },
+        { columnId: "periodFilter", title: "Competência" },
+      ]}
       actions={canCreate ? <NewBillingDialog /> : null}
       emptyMessage={
         isError

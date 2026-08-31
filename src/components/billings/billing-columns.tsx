@@ -15,6 +15,15 @@ export interface BillingColumnsOptions {
 
 const dash = (v: string | null) => v ?? "—"
 
+/** Filtro multi-seleção (valor = array de strings). */
+function inArrayFilter(
+  row: { getValue: (id: string) => unknown },
+  id: string,
+  value: string[]
+) {
+  return !value?.length || value.includes(row.getValue(id) as string)
+}
+
 /** "2026-04" -> "04/2026". */
 function formatPeriod(period: string): string {
   const [year, month] = period.split("-")
@@ -165,6 +174,32 @@ export function billingColumns({
         </span>
       ),
       size: 150,
+    },
+    {
+      id: "contractFilter",
+      accessorFn: (row) => getContractNumber(row.contractId),
+      filterFn: inArrayFilter,
+      meta: { filterOnly: true },
+    },
+    {
+      id: "companyFilter",
+      accessorFn: (row) => row.contractedCompany,
+      filterFn: inArrayFilter,
+      meta: { filterOnly: true },
+    },
+    {
+      // O ano da competência: filtrar "2026" é mais útil que escolher os doze
+      // meses um a um, e o filtro de competência já cobre o mês exato.
+      id: "periodYear",
+      accessorFn: (row) => row.period.slice(0, 4),
+      filterFn: inArrayFilter,
+      meta: { filterOnly: true },
+    },
+    {
+      id: "periodFilter",
+      accessorFn: (row) => formatPeriod(row.period),
+      filterFn: inArrayFilter,
+      meta: { filterOnly: true },
     },
     actionsColumn(({ row }) => <BillingActionsCell billing={row.original} />),
   ]

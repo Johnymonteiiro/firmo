@@ -23,6 +23,8 @@ export function UsersDataTable() {
       filters={[
         { columnId: "profile", title: "Perfil" },
         { columnId: "status", title: "Status" },
+        { columnId: "emailDomain", title: "Domínio" },
+        { columnId: "createdYear", title: "Cadastro" },
       ]}
       actions={
         canCreate ? (

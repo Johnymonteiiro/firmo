@@ -1,10 +1,8 @@
-import {
-  useMutation,
-  useQuery,
-  useQueryClient,
-} from "@tanstack/react-query"
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { z } from "zod"
 import { apiFetch } from "@/lib/api"
+import { sessionKey } from "@/lib/auth"
+import { useFeedbackMutation } from "@/lib/feedback"
 import { institutionalEmailSchema } from "@/lib/validation"
 
 export type UserProfile =
@@ -250,18 +248,16 @@ export function useUser(userId: string | null) {
 }
 
 export function useCreateUser() {
-  const queryClient = useQueryClient()
-  return useMutation({
+  return useFeedbackMutation({
     mutationFn: createUser,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: usersKey })
-    },
+    action: "criar",
+    entity: "usuário",
+    invalidate: [usersKey],
   })
 }
 
 export function useUpdateUser() {
-  const queryClient = useQueryClient()
-  return useMutation({
+  return useFeedbackMutation({
     mutationFn: ({
       userId,
       input,
@@ -272,30 +268,29 @@ export function useUpdateUser() {
       /** Edição dos próprios dados — vai para `/users/me`. */
       self?: boolean
     }) => (self ? updateOwnUser(input) : updateUser(userId, input)),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: usersKey })
-    },
+    action: "editar",
+    entity: "usuário",
+    // O nome do usuário é snapshot nos papéis do contrato e aparece no painel.
+    invalidate: [usersKey, ["contracts"], ["dashboard"], sessionKey],
   })
 }
 
 export function useChangeUserStatus() {
-  const queryClient = useQueryClient()
-  return useMutation({
+  return useFeedbackMutation({
     mutationFn: ({ userId, status }: { userId: string; status: UserStatus }) =>
       changeUserStatus(userId, status),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: usersKey })
-    },
+    action: "alterar-status",
+    entity: "usuário",
+    invalidate: [usersKey, ["dashboard"]],
   })
 }
 
 export function useArchiveUser() {
-  const queryClient = useQueryClient()
-  return useMutation({
+  return useFeedbackMutation({
     mutationFn: archiveUser,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: usersKey })
-    },
+    action: "arquivar",
+    entity: "usuário",
+    invalidate: [usersKey, ["dashboard"]],
   })
 }
 
@@ -322,12 +317,11 @@ export function useArchivedUsers(page: number, pageSize: number) {
 }
 
 export function useUnarchiveUser() {
-  const queryClient = useQueryClient()
-  return useMutation({
+  return useFeedbackMutation({
     mutationFn: unarchiveUser,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: usersKey })
-    },
+    action: "desarquivar",
+    entity: "usuário",
+    invalidate: [usersKey, ["dashboard"]],
   })
 }
 
