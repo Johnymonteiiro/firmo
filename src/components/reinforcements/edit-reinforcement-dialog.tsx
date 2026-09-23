@@ -5,7 +5,7 @@ import { Controller, useForm } from "react-hook-form"
 import { standardSchemaResolver } from "@hookform/resolvers/standard-schema"
 
 import { ReinforcementStatusBadge } from "@/components/reinforcements/reinforcement-status-badge"
-import { Input } from "@/components/ui/input"
+import { MaskedInput } from "@/components/ui/masked-input"
 import { CurrencyInput } from "@/components/form/currency-input"
 import { DatePicker } from "@/components/form/date-picker"
 import { FormDialog } from "@/components/form/form-dialog"
@@ -41,7 +41,6 @@ export function EditReinforcementDialog({
   const updateReinforcement = useUpdateReinforcement()
 
   const {
-    register,
     handleSubmit,
     control,
     reset,
@@ -89,10 +88,22 @@ export function EditReinforcementDialog({
       <SectionTitle>Dados do reforço</SectionTitle>
 
       <Field label="SNE do reforço" error={errors.sne?.message}>
-        <Input
-          {...register("sne")}
-          placeholder="202600408-R1"
-          aria-invalid={!!errors.sne}
+        {/* Reforço antigo do backfill (`202600408-R1`) abre aqui sem os
+            caracteres que a máscara não aceita — é editando que ele passa a
+            ter o formato definitivo. */}
+        <Controller
+          control={control}
+          name="sne"
+          render={({ field }) => (
+            <MaskedInput
+              mask="000000000"
+              placeholder="202600512"
+              value={field.value}
+              onAccept={(value) => field.onChange(value)}
+              onBlur={field.onBlur}
+              aria-invalid={!!errors.sne}
+            />
+          )}
         />
       </Field>
 

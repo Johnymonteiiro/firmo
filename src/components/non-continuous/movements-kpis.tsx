@@ -39,6 +39,7 @@ export function MovementsKpis() {
         value={data?.total ?? 0}
         hint="Empenhos e pagamentos ativos"
         icon={Note01Icon}
+        tone="info"
         isLoading={isLoading}
       />
       <KpiCard
@@ -46,6 +47,7 @@ export function MovementsKpis() {
         value={formatBRL(stats.committed)}
         hint="Soma dos empenhos listados"
         icon={MoneyReceive01Icon}
+        tone="accent"
         isLoading={isLoading}
       />
       <KpiCard
@@ -53,12 +55,12 @@ export function MovementsKpis() {
         value={formatBRL(stats.paid)}
         hint="Soma dos pagamentos listados"
         icon={MoneySend01Icon}
+        tone="accent"
         isLoading={isLoading}
       />
       <KpiCard
         label="Saldo a pagar"
         value={formatBRL(stats.committed - stats.paid)}
-        hint="Empenhado − pago"
         icon={Coins01Icon}
         tone={stats.committed - stats.paid > 0 ? "warning" : "success"}
         isLoading={isLoading}

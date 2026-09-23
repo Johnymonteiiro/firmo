@@ -43,8 +43,6 @@ export interface Commitment {
   /** Reforços ativos, do mais recente para o mais antigo. */
   reinforcements: CommitmentReinforcement[]
   status: CommitmentStatus
-  /** Valor Economizado calculado: (inicial + reajuste do contrato) − faturado. */
-  savedAmount: string
   createdAt: string
   updatedAt: string
   deletedAt: string | null
@@ -133,6 +131,19 @@ export function updateCommitment(
   })
 }
 
+/** Status definíveis à mão — SALDO é conclusão do cálculo, não escolha. */
+export type CommitmentStatusTarget = "VIGENTE" | "ENCERRADO"
+
+export function changeCommitmentStatus(
+  commitmentId: string,
+  status: CommitmentStatusTarget
+): Promise<Commitment> {
+  return apiFetch<Commitment>(`/commitments/${commitmentId}/status`, {
+    method: "PATCH",
+    body: JSON.stringify({ status }),
+  })
+}
+
 export function archiveCommitment(commitmentId: string): Promise<unknown> {
   return apiFetch(`/commitments/${commitmentId}`, { method: "DELETE" })
 }
@@ -198,6 +209,25 @@ export function useUpdateCommitment() {
     // Mudar o valor inicial move o saldo, que a gestão orçamentária e o
     // painel somam por conta própria.
     invalidate: [commitmentsKey, ["budget"], ["dashboard"]],
+  })
+}
+
+/**
+ * Encerrar ou reabrir à mão. O status continua saindo do cálculo (saldo + ano
+ * da SNE); isto só liga e desliga a exceção.
+ */
+export function useChangeCommitmentStatus() {
+  return useFeedbackMutation({
+    mutationFn: ({
+      commitmentId,
+      status,
+    }: {
+      commitmentId: string
+      status: CommitmentStatusTarget
+    }) => changeCommitmentStatus(commitmentId, status),
+    action: "alterar-status",
+    entity: "empenho",
+    invalidate: [commitmentsKey, ["dashboard"]],
   })
 }
 

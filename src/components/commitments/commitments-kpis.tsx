@@ -9,15 +9,14 @@ import { useReinforcements } from "@/lib/reinforcements"
 import {
   Coins01Icon,
   MoneyReceive01Icon,
-  PiggyBankIcon,
   SavingsIcon,
 } from "@hugeicons/core-free-icons"
 
-/** parseBRL descarta o sinal — savedAmount pode ser negativo. */
-const parseSignedBRL = (value: string) =>
-  (value.includes("-") ? -1 : 1) * parseBRL(value)
-
-/** KPIs da listagem de empenhos — mesmas queries da tabela (dedupe). */
+/**
+ * KPIs da listagem de empenhos — mesmas queries da tabela (dedupe). Sem
+ * "Valor economizado": desde 2026-09-23 a economia é do faturamento (mensal
+ * vigente − faturado), e não tem como somá-la por empenho.
+ */
 export function CommitmentsKpis() {
   const { data, isLoading } = useCommitments(1, 100)
   // Só o total interessa aqui (contagem de reforços ativos).
@@ -28,14 +27,12 @@ export function CommitmentsKpis() {
     const byStatus = { VIGENTE: 0, SALDO: 0, ENCERRADO: 0 }
     let balance = 0
     let reinforced = 0
-    let saved = 0
     for (const c of commitments) {
       byStatus[c.status] += 1
       balance += parseBRL(c.currentBalance)
       reinforced += parseBRL(c.reinforcementValue)
-      saved += parseSignedBRL(c.savedAmount)
     }
-    return { byStatus, balance, reinforced, saved }
+    return { byStatus, balance, reinforced }
   }, [commitments])
 
   const { byStatus } = stats
@@ -47,7 +44,7 @@ export function CommitmentsKpis() {
         value={data?.total ?? 0}
         hint={`${byStatus.VIGENTE} vigentes · ${byStatus.SALDO} c/ saldo antigo · ${byStatus.ENCERRADO} encerrados`}
         icon={MoneyReceive01Icon}
-        tone={byStatus.SALDO > 0 ? "warning" : "default"}
+        tone={byStatus.SALDO > 0 ? "warning" : "info"}
         isLoading={isLoading}
       />
       <KpiCard
@@ -55,6 +52,7 @@ export function CommitmentsKpis() {
         value={formatBRL(stats.balance)}
         hint="Soma dos saldos dos empenhos ativos"
         icon={Coins01Icon}
+        tone="success"
         isLoading={isLoading}
       />
       <KpiCard
@@ -62,14 +60,7 @@ export function CommitmentsKpis() {
         value={formatBRL(stats.reinforced)}
         hint={`${reinforcements?.total ?? 0} reforço${(reinforcements?.total ?? 0) === 1 ? "" : "s"} registrados`}
         icon={SavingsIcon}
-        isLoading={isLoading}
-      />
-      <KpiCard
-        label="Valor economizado"
-        value={formatBRL(stats.saved)}
-        hint="(inicial + reajuste) − faturado"
-        icon={PiggyBankIcon}
-        tone={stats.saved < 0 ? "destructive" : "success"}
+        tone="success"
         isLoading={isLoading}
       />
     </KpiGrid>

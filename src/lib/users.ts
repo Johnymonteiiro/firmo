@@ -16,8 +16,8 @@ export type UserStatus = "ATIVO" | "INATIVO" | "SUSPENSO"
 /** Rótulos em PT-BR — usados em colunas, filtros, badges e selects. */
 export const USER_PROFILE_LABELS: Record<UserProfile, string> = {
   ADMINISTRADOR: "Administrador",
-  GESTOR_CONTRATOS: "Gestor de Contrato",
-  GESTOR_FINANCEIRO: "Gestor Financeiro",
+  GESTOR_CONTRATOS: "Setor de Contrato",
+  GESTOR_FINANCEIRO: "Setor Financeiro",
   VISITANTE: "Visitante",
 }
 

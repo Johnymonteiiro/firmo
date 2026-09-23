@@ -4,7 +4,7 @@ import { KpiCard, KpiGrid } from "@/components/kpi"
 import { parseBRL } from "@/lib/format"
 import type { BudgetTotals } from "@/lib/budget"
 import {
-  Calendar03Icon,
+  MoneyBag02Icon,
   Coins01Icon,
   PiggyBankIcon,
   WalletAdd01Icon,
@@ -34,17 +34,17 @@ export function BudgetKpis({
         label="Custo anual dos contratos"
         value={totals?.annualCost ?? "—"}
         hint={`${contracts} contrato${contracts === 1 ? "" : "s"} vigente${contracts === 1 ? "" : "s"} em ${year}`}
-        icon={Calendar03Icon}
+        icon={MoneyBag02Icon}
+        tone="accent"
         isLoading={isLoading}
       />
       <KpiCard
         label="Orçamento liberado"
         value={totals?.releasedBudget ?? "—"}
-        hint="Empenhado inicial + reforços"
         icon={WalletAdd01Icon}
         // Liberado abaixo do custo do ano é o alerta que a planilha pinta na
         // coluna H — aqui ele sobe para o cartão.
-        tone={totals && released < annual ? "warning" : "default"}
+        tone={totals && released < annual ? "warning" : "success"}
         isLoading={isLoading}
       />
       <KpiCard
@@ -52,12 +52,12 @@ export function BudgetKpis({
         value={totals?.commitmentsBalance ?? "—"}
         hint="Disponível para faturar"
         icon={Coins01Icon}
+        tone="success"
         isLoading={isLoading}
       />
       <KpiCard
         label="Total economizado"
         value={totals?.totalSaved ?? "—"}
-        hint="(inicial + reajuste) − faturado, por empenho"
         icon={PiggyBankIcon}
         tone={
           totals && parseBRL(totals.totalSaved) > 0 ? "success" : "default"

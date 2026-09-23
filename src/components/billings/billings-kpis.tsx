@@ -6,7 +6,6 @@ import { KpiCard, KpiGrid } from "@/components/kpi"
 import { formatBRL, parseBRL } from "@/lib/format"
 import { useBillings } from "@/lib/billings"
 import {
-  Calendar03Icon,
   File01Icon,
   Invoice01Icon,
   MoneySend01Icon,
@@ -32,9 +31,7 @@ export function BillingsKpis() {
     let missingPaymentRequest = 0
     for (const b of billings) {
       contracts.add(b.contractId)
-      const amount =
-        (b.billedAmount1 ? parseBRL(b.billedAmount1) : 0) +
-        (b.billedAmount2 ? parseBRL(b.billedAmount2) : 0)
+      const amount = parseBRL(b.totalBilledAmount)
       billedTotal += amount
       if (b.period.startsWith(currentYear)) {
         billedThisYear += amount
@@ -58,6 +55,7 @@ export function BillingsKpis() {
         value={data?.total ?? 0}
         hint={`em ${stats.contracts} contrato${stats.contracts === 1 ? "" : "s"}`}
         icon={Invoice01Icon}
+        tone="info"
         isLoading={isLoading}
       />
       <KpiCard
@@ -65,13 +63,15 @@ export function BillingsKpis() {
         value={formatBRL(stats.billedTotal)}
         hint="Soma dos valores faturados ativos"
         icon={MoneySend01Icon}
+        tone="accent"
         isLoading={isLoading}
       />
       <KpiCard
         label={`Faturado em ${currentYear}`}
         value={formatBRL(stats.billedThisYear)}
         hint={`${stats.periodsThisYear} competência${stats.periodsThisYear === 1 ? "" : "s"} no exercício`}
-        icon={Calendar03Icon}
+        icon={MoneySend01Icon}
+        tone="accent"
         isLoading={isLoading}
       />
       <KpiCard

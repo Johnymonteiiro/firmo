@@ -10,10 +10,28 @@ import {
 import { Skeleton } from "@/components/ui/skeleton"
 import { cn } from "@/lib/utils"
 
-export type KpiTone = "default" | "success" | "warning" | "destructive"
+/**
+ * Acento do ícone. A cor classifica a natureza do número, não o seu valor —
+ * quem carrega o significado é sempre o rótulo:
+ *
+ * - `info`      contagem de registros (quantos contratos, quantos usuários);
+ * - `success`   dinheiro disponível ou economizado (saldo, reforços);
+ * - `accent`    dinheiro comprometido ou que saiu (custo, faturado, pago);
+ * - `warning` / `destructive`  algo que pede atenção, sempre condicional;
+ * - `default`   cinza, para quando nenhuma das anteriores se aplica.
+ */
+export type KpiTone =
+  | "default"
+  | "info"
+  | "accent"
+  | "success"
+  | "warning"
+  | "destructive"
 
 const TONE_ICON: Record<KpiTone, string> = {
   default: "bg-secondary text-muted-foreground",
+  info: "bg-info/15 text-info",
+  accent: "bg-primary/15 text-primary",
   success: "bg-success/15 text-success",
   warning: "bg-warning/15 text-warning",
   destructive: "bg-destructive/15 text-destructive",

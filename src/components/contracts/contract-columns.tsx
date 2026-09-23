@@ -6,7 +6,19 @@ import type { ColumnDef } from "@tanstack/react-table"
 import { DataGridColumnHeader } from "@/components/reui/data-grid/data-grid-column-header"
 import { DataTableRowActions } from "@/components/data-table/data-table-row-actions"
 import { actionsColumn } from "@/components/data-table/columns"
+import { AdjustContractDialog } from "@/components/contracts/adjust-contract-dialog"
 import { EditContractDialog } from "@/components/contracts/edit-contract-dialog"
+import { Badge } from "@/components/ui/badge"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { HugeiconsIcon } from "@hugeicons/react"
+import { ArrowDown01Icon, MoneyBag02Icon } from "@hugeicons/core-free-icons"
 import {
   ContractStatusBadge,
   DaysRemainingBadge,
@@ -108,14 +120,16 @@ export const contractColumns: ColumnDef<Contract>[] = [
     size: 110,
   },
   {
-    accessorKey: "effectiveMonthlyValue",
+    // O valor original do contrato. O que vale hoje sai da coluna "Valor Após
+    // Reajuste", que abre o histórico inteiro.
+    accessorKey: "monthlyValue",
     id: "monthlyValue",
     header: ({ column }) => (
       <DataGridColumnHeader title="Valor Mensal" column={column} />
     ),
     cell: ({ row }) => (
       <span className="block text-right font-mono tabular-nums">
-        {row.original.effectiveMonthlyValue}
+        {row.original.monthlyValue}
       </span>
     ),
     size: 130,
@@ -157,30 +171,15 @@ export const contractColumns: ColumnDef<Contract>[] = [
     size: 120,
   },
   {
-    accessorKey: "adjustmentMonthYear",
-    id: "adjustmentMonthYear",
-    header: ({ column }) => (
-      <DataGridColumnHeader title="Mês/Ano Reajuste" column={column} />
-    ),
-    cell: ({ row }) => (
-      <span className="font-mono tabular-nums">
-        {row.original.adjustmentMonthYear ?? "—"}
-      </span>
-    ),
-    size: 130,
-  },
-  {
-    accessorKey: "adjustedMonthlyValue",
+    // Ordena e busca pelo reajuste mais recente — o que fica visível na
+    // linha; o histórico inteiro sai no dropdown.
+    accessorFn: (row) => row.adjustedMonthlyValue ?? "",
     id: "adjustedMonthlyValue",
     header: ({ column }) => (
       <DataGridColumnHeader title="Valor Após Reajuste" column={column} />
     ),
-    cell: ({ row }) => (
-      <span className="block text-right font-mono tabular-nums">
-        {row.original.adjustedMonthlyValue ?? "—"}
-      </span>
-    ),
-    size: 150,
+    cell: ({ row }) => <AdjustmentsCell contract={row.original} />,
+    size: 170,
   },
   {
     accessorKey: "notes",
@@ -240,9 +239,79 @@ function dueBucket(contract: Contract): string {
   return "Mais de 90 dias"
 }
 
+/**
+ * Reajuste mais recente na linha, `+N` quando há mais, e o dropdown abre o
+ * histórico inteiro — mesmo desenho da coluna "SNE Reforço" de empenhos.
+ * Contrato sem reajuste mostra só um traço.
+ */
+function AdjustmentsCell({ contract }: { contract: Contract }) {
+  const adjustments = contract.adjustments
+  const latest = adjustments.at(-1)
+
+  if (!latest) {
+    return <span className="block text-right text-muted-foreground">—</span>
+  }
+
+  const rest = adjustments.length - 1
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button
+          type="button"
+          className="flex w-full items-center justify-end gap-1.5 rounded-sm px-1 py-0.5 font-mono tabular-nums hover:bg-accent"
+        >
+          {latest.monthlyValue}
+          {rest > 0 ? (
+            <Badge variant="secondary" className="px-1.5 py-0 font-sans">
+              +{rest}
+            </Badge>
+          ) : null}
+          <HugeiconsIcon
+            icon={ArrowDown01Icon}
+            strokeWidth={2}
+            className="size-3.5 opacity-50"
+          />
+        </button>
+      </DropdownMenuTrigger>
+
+      <DropdownMenuContent align="end" className="w-64">
+        <DropdownMenuLabel>
+          {adjustments.length === 1
+            ? "1 reajuste"
+            : `${adjustments.length} reajustes`}
+        </DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        {[...adjustments].reverse().map((adjustment) => (
+          <DropdownMenuItem
+            key={adjustment.monthYear}
+            onSelect={(event) => event.preventDefault()}
+            className="flex items-center justify-between gap-3"
+          >
+            <span className="font-mono tabular-nums">
+              {adjustment.monthYear}
+            </span>
+            <span className="font-mono tabular-nums">
+              {adjustment.monthlyValue}
+            </span>
+          </DropdownMenuItem>
+        ))}
+        <DropdownMenuSeparator />
+        <div className="flex items-center justify-between gap-3 px-2 py-1.5 text-sm font-medium">
+          <span>Valor mensal original</span>
+          <span className="font-mono tabular-nums">
+            {contract.monthlyValue}
+          </span>
+        </div>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  )
+}
+
 function ContractActionsCell({ contract }: { contract: Contract }) {
   const router = useRouter()
   const [editOpen, setEditOpen] = React.useState(false)
+  const [adjustOpen, setAdjustOpen] = React.useState(false)
   const archive = useArchiveContract()
   const changeStatus = useChangeContractStatus()
   const { can } = usePermissions()
@@ -252,6 +321,14 @@ function ContractActionsCell({ contract }: { contract: Contract }) {
     <>
       <DataTableRowActions
         entityLabel="contrato"
+        extraActions={
+          canEdit ? (
+            <DropdownMenuItem onClick={() => setAdjustOpen(true)}>
+              <HugeiconsIcon icon={MoneyBag02Icon} strokeWidth={2} />
+              Reajustar valor mensal
+            </DropdownMenuItem>
+          ) : null
+        }
         onDetails={() =>
           router.push(
             `/dashboard/contratos/continuados/relacao-contratos/${contract.contractId}`
@@ -288,6 +365,14 @@ function ContractActionsCell({ contract }: { contract: Contract }) {
         open={editOpen}
         onOpenChange={setEditOpen}
       />
+      {/* Montado sob demanda — um form por linha da tabela seria desperdício. */}
+      {adjustOpen ? (
+        <AdjustContractDialog
+          contract={contract}
+          open={adjustOpen}
+          onOpenChange={setAdjustOpen}
+        />
+      ) : null}
     </>
   )
 }

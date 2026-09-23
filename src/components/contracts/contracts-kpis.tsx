@@ -8,7 +8,7 @@ import { formatBRL, parseBRL } from "@/lib/format"
 import { useContracts } from "@/lib/contracts"
 import {
   Calendar03Icon,
-  CheckListIcon,
+  ContractsIcon,
   MoneyBag02Icon,
   Wallet01Icon,
 } from "@hugeicons/core-free-icons"
@@ -38,7 +38,8 @@ export function ContractsKpis() {
         label="Total de contratos"
         value={data?.total ?? 0}
         hint={`${byStatus.VIGENTE + byStatus.A_VENCER} vigentes · ${byStatus.ENCERRADO} encerrados · ${byStatus.EXPIRADO} expirados`}
-        icon={CheckListIcon}
+        icon={ContractsIcon}
+        tone="info"
         isLoading={isLoading}
       />
       <KpiCard
@@ -46,7 +47,7 @@ export function ContractsKpis() {
         value={byStatus.A_VENCER}
         hint="Contratos vigentes perto do vencimento"
         icon={Calendar03Icon}
-        tone={byStatus.A_VENCER > 0 ? "warning" : "default"}
+        tone={byStatus.A_VENCER > 0 ? "warning" : "info"}
         isLoading={isLoading}
       />
       <KpiCard
@@ -54,6 +55,7 @@ export function ContractsKpis() {
         value={formatBRL(stats.monthly)}
         hint="Soma dos valores mensais vigentes"
         icon={Wallet01Icon}
+        tone="accent"
         isLoading={isLoading}
       />
       <KpiCard
@@ -61,6 +63,7 @@ export function ContractsKpis() {
         value={formatBRL(stats.annual)}
         hint={`Estimativa para ${new Date().getFullYear()}`}
         icon={MoneyBag02Icon}
+        tone="accent"
         isLoading={isLoading}
       />
     </KpiGrid>

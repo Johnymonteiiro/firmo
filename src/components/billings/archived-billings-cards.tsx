@@ -49,7 +49,7 @@ export function ArchivedBillingsCards() {
           title={b.contractedCompany}
           subtitle={`Contrato ${getContractNumber(b.contractId)}`}
           fields={[
-            { label: "Valor faturado", value: b.billedAmount1 ?? "—", mono: true },
+            { label: "Valor faturado", value: b.totalBilledAmount, mono: true },
             { label: "Economizado", value: b.savedAmount ?? "—", mono: true },
           ]}
           archivedAt={b.deletedAt ?? b.updatedAt}

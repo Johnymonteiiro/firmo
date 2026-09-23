@@ -142,17 +142,26 @@ export function ContractDetail({ contractId }: { contractId: string }) {
               value={<PersonList people={contract.techFiscals} />}
             />
             <Row
-              label="Ocorreu reajuste"
-              value={contract.hasAdjustment === "SIM" ? "Sim" : "Não"}
-            />
-            <Row
-              label="Valor após reajuste"
-              value={contract.adjustedMonthlyValue ?? "—"}
+              label="Valor mensal vigente"
+              value={contract.effectiveMonthlyValue}
               mono
             />
             <Row
-              label="Mês/Ano reajuste"
-              value={contract.adjustmentMonthYear ?? "—"}
+              label="Reajustes"
+              value={
+                contract.adjustments.length === 0 ? (
+                  "Nenhum"
+                ) : (
+                  <span className="inline-flex flex-col items-end gap-0.5">
+                    {[...contract.adjustments].reverse().map((adjustment) => (
+                      <span key={adjustment.monthYear}>
+                        {adjustment.monthlyValue} · a partir de{" "}
+                        {adjustment.monthYear}
+                      </span>
+                    ))}
+                  </span>
+                )
+              }
               mono
             />
             <Row label="Observação" value={contract.notes ?? "—"} />

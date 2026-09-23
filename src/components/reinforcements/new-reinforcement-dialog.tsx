@@ -65,7 +65,6 @@ export function NewReinforcementDialog({
   const {
     handleSubmit,
     control,
-    register,
     reset,
     formState: { errors },
   } = useForm<CreateReinforcementFormValues>({
@@ -154,11 +153,21 @@ export function NewReinforcementDialog({
 
       <SectionTitle>Dados do reforço</SectionTitle>
       <Field label="SNE do Reforço" error={errors.sne?.message}>
-        <Input
-          placeholder="202600512"
-          inputMode="numeric"
-          aria-invalid={!!errors.sne}
-          {...register("sne")}
+        {/* Mesma máscara da SNE do empenho: o campo só aceita os 9 dígitos
+            de {ano}{sequência}, em vez de recusar só depois de salvar. */}
+        <Controller
+          control={control}
+          name="sne"
+          render={({ field }) => (
+            <MaskedInput
+              mask="000000000"
+              placeholder="202600512"
+              value={field.value}
+              onAccept={(value) => field.onChange(value)}
+              onBlur={field.onBlur}
+              aria-invalid={!!errors.sne}
+            />
+          )}
         />
       </Field>
 
