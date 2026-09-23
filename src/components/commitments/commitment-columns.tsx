@@ -4,7 +4,10 @@ import * as React from "react"
 import type { ColumnDef } from "@tanstack/react-table"
 
 import { DataGridColumnHeader } from "@/components/reui/data-grid/data-grid-column-header"
-import { DataTableRowActions } from "@/components/data-table/data-table-row-actions"
+import {
+  DataTableRowActions,
+  type StatusOption,
+} from "@/components/data-table/data-table-row-actions"
 import { actionsColumn } from "@/components/data-table/columns"
 import {
   CommitmentStatusBadge,
@@ -29,8 +32,10 @@ import { Badge } from "@/components/ui/badge"
 import { formatDate, parseBRL } from "@/lib/format"
 import {
   useArchiveCommitment,
+  useChangeCommitmentStatus,
   type Commitment,
   type CommitmentReinforcement,
+  type CommitmentStatusTarget,
 } from "@/lib/commitments"
 import { PERMISSIONS, usePermissions } from "@/lib/permissions"
 import {
@@ -203,19 +208,6 @@ export function commitmentColumns({
         </span>
       ),
       size: 150,
-    },
-    {
-      accessorKey: "savedAmount",
-      id: "savedAmount",
-      header: ({ column }) => (
-        <DataGridColumnHeader title="Valor Economizado" column={column} />
-      ),
-      cell: ({ row }) => (
-        <span className="block text-right font-mono tabular-nums">
-          {row.original.savedAmount}
-        </span>
-      ),
-      size: 160,
     },
     {
       // Só filtro — a coluna Contrato já mostra o número e ordena por ele.
@@ -438,8 +430,18 @@ function ReinforcementsCell({ commitment }: { commitment: Commitment }) {
   )
 }
 
+/**
+ * O que dá para decidir à mão. Empenho com saldo pode ser encerrado antes da
+ * hora; reabrir devolve o status ao cálculo.
+ */
+const COMMITMENT_STATUS_OPTIONS: StatusOption<CommitmentStatusTarget>[] = [
+  { value: "VIGENTE", label: "Reabrir", dotClass: "bg-success" },
+  { value: "ENCERRADO", label: "Encerrar", dotClass: "bg-muted-foreground" },
+]
+
 function CommitmentActionsCell({ commitment }: { commitment: Commitment }) {
   const archive = useArchiveCommitment()
+  const changeStatus = useChangeCommitmentStatus()
   const [reinforceOpen, setReinforceOpen] = React.useState(false)
   const [editOpen, setEditOpen] = React.useState(false)
   const { can } = usePermissions()
@@ -450,6 +452,19 @@ function CommitmentActionsCell({ commitment }: { commitment: Commitment }) {
         entityLabel="empenho"
         onEdit={
           can(PERMISSIONS.empenhosEditar) ? () => setEditOpen(true) : undefined
+        }
+        // SALDO fica de fora: é o que o cálculo conclui de um empenho de ano
+        // anterior com saldo, não uma decisão de quem opera.
+        statusOptions={COMMITMENT_STATUS_OPTIONS}
+        currentStatus={commitment.status}
+        onChangeStatus={
+          can(PERMISSIONS.empenhosEditar)
+            ? (status) =>
+                changeStatus.mutateAsync({
+                  commitmentId: commitment.commitmentId,
+                  status,
+                })
+            : undefined
         }
         extraActions={
           can(PERMISSIONS.reforcosCriar) ? (

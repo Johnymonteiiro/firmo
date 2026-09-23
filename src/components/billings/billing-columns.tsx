@@ -1,12 +1,31 @@
 "use client"
 
+import * as React from "react"
 import type { ColumnDef } from "@tanstack/react-table"
+import { useRouter } from "next/navigation"
 
 import { DataGridColumnHeader } from "@/components/reui/data-grid/data-grid-column-header"
 import { DataTableRowActions } from "@/components/data-table/data-table-row-actions"
 import { actionsColumn } from "@/components/data-table/columns"
-import { useArchiveBilling, type Billing } from "@/lib/billings"
+import { BillingFormDialog } from "@/components/billings/billing-form-dialog"
+import { Badge } from "@/components/ui/badge"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import {
+  billingDetailUrl,
+  formatPeriod,
+  useArchiveBilling,
+  type Billing,
+} from "@/lib/billings"
 import { PERMISSIONS, usePermissions } from "@/lib/permissions"
+import { HugeiconsIcon } from "@hugeicons/react"
+import { ArrowDown01Icon } from "@hugeicons/core-free-icons"
 
 export interface BillingColumnsOptions {
   /** contractId -> número do contrato (ex.: "2333/2026"). */
@@ -22,12 +41,6 @@ function inArrayFilter(
   value: string[]
 ) {
   return !value?.length || value.includes(row.getValue(id) as string)
-}
-
-/** "2026-04" -> "04/2026". */
-function formatPeriod(period: string): string {
-  const [year, month] = period.split("-")
-  return year && month ? `${month}/${year}` : period
 }
 
 export function billingColumns({
@@ -56,56 +69,62 @@ export function billingColumns({
       size: 200,
     },
     {
-      accessorKey: "billedAmount1",
-      id: "billedAmount1",
+      accessorKey: "totalBilledAmount",
+      id: "totalBilledAmount",
       header: ({ column }) => (
-        <DataGridColumnHeader title="Valor Faturado 1 (R$)" column={column} />
+        <DataGridColumnHeader title="Valor Faturado (R$)" column={column} />
       ),
       cell: ({ row }) => (
         <span className="block text-right font-mono tabular-nums">
-          {dash(row.original.billedAmount1)}
+          {row.original.totalBilledAmount}
         </span>
       ),
       size: 150,
     },
     {
-      accessorKey: "sneDeduction1",
-      id: "sneDeduction1",
+      // Ordena e busca pela primeira SNE — a que fica visível na linha.
+      accessorFn: (row) => row.snes[0]?.sne ?? "",
+      id: "snes",
       header: ({ column }) => (
-        <DataGridColumnHeader title="SNE Desconta da 1" column={column} />
+        <DataGridColumnHeader title="SNE Desconta" column={column} />
       ),
       cell: ({ row }) => (
-        <span className="font-mono tabular-nums">
-          {dash(row.original.sneDeduction1)}
-        </span>
+        <ListDropdownCell
+          title={
+            row.original.snes.length === 1
+              ? "1 SNE descontada"
+              : `${row.original.snes.length} SNEs descontadas`
+          }
+          items={row.original.snes.map((item) => ({
+            key: item.sne,
+            primary: item.sne,
+            secondary: item.billedAmount,
+          }))}
+          footer={{ label: "Total", value: row.original.totalBilledAmount }}
+        />
       ),
-      size: 140,
+      size: 170,
     },
     {
-      accessorKey: "billedAmount2",
-      id: "billedAmount2",
+      accessorFn: (row) => row.fiscalDocuments[0] ?? "",
+      id: "fiscalDocuments",
       header: ({ column }) => (
-        <DataGridColumnHeader title="Valor Faturado 2 (R$)" column={column} />
+        <DataGridColumnHeader title="Documento Fiscal" column={column} />
       ),
       cell: ({ row }) => (
-        <span className="block text-right font-mono tabular-nums">
-          {dash(row.original.billedAmount2)}
-        </span>
+        <ListDropdownCell
+          title={
+            row.original.fiscalDocuments.length === 1
+              ? "1 documento fiscal"
+              : `${row.original.fiscalDocuments.length} documentos fiscais`
+          }
+          items={row.original.fiscalDocuments.map((number) => ({
+            key: number,
+            primary: number,
+          }))}
+        />
       ),
-      size: 150,
-    },
-    {
-      accessorKey: "sneDeduction2",
-      id: "sneDeduction2",
-      header: ({ column }) => (
-        <DataGridColumnHeader title="SNE Desconta da 2" column={column} />
-      ),
-      cell: ({ row }) => (
-        <span className="font-mono tabular-nums">
-          {dash(row.original.sneDeduction2)}
-        </span>
-      ),
-      size: 140,
+      size: 170,
     },
     {
       accessorKey: "paymentRequestNumber",
@@ -205,26 +224,124 @@ export function billingColumns({
   ]
 }
 
-function BillingActionsCell({ billing }: { billing: Billing }) {
-  const archive = useArchiveBilling()
-  const { can } = usePermissions()
+interface DropdownListItem {
+  key: string
+  primary: string
+  secondary?: string
+}
+
+/**
+ * Primeiro item na linha, `+N` quando há mais, e o dropdown abre a lista
+ * inteira — o mesmo desenho da coluna "SNE Reforço" de empenhos. Aqui é só
+ * leitura: editar a lista é pelo "Editar" do faturamento. Lista vazia mostra
+ * só o traço, sem nada para abrir.
+ */
+function ListDropdownCell({
+  title,
+  items,
+  footer,
+}: {
+  title: string
+  items: DropdownListItem[]
+  footer?: { label: string; value: string }
+}) {
+  const [first, ...rest] = items
+
+  if (!first) {
+    return <span className="text-muted-foreground">—</span>
+  }
+
   return (
-    <DataTableRowActions
-      entityLabel="faturamento"
-      history={
-        can(PERMISSIONS.auditoriaVisualizar)
-          ? {
-              entity: "billing",
-              recordId: billing.billingId,
-              subtitle: `Competência ${billing.period} · ${billing.contractedCompany}`,
-            }
-          : undefined
-      }
-      onArchive={
-        can(PERMISSIONS.faturamentosArquivar)
-          ? () => archive.mutateAsync(billing.billingId)
-          : undefined
-      }
-    />
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button
+          type="button"
+          className="flex items-center gap-1.5 rounded-sm px-1 py-0.5 font-mono tabular-nums hover:bg-accent"
+        >
+          {first.primary}
+          {rest.length > 0 ? (
+            <Badge variant="secondary" className="px-1.5 py-0 font-sans">
+              +{rest.length}
+            </Badge>
+          ) : null}
+          <HugeiconsIcon
+            icon={ArrowDown01Icon}
+            strokeWidth={2}
+            className="size-3.5 opacity-50"
+          />
+        </button>
+      </DropdownMenuTrigger>
+
+      <DropdownMenuContent align="start" className="w-64">
+        <DropdownMenuLabel>{title}</DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        {items.map((item) => (
+          <DropdownMenuItem
+            key={item.key}
+            onSelect={(event) => event.preventDefault()}
+            className="flex items-center justify-between gap-3"
+          >
+            <span className="font-mono tabular-nums">{item.primary}</span>
+            {item.secondary ? (
+              <span className="font-mono text-xs text-muted-foreground tabular-nums">
+                {item.secondary}
+              </span>
+            ) : null}
+          </DropdownMenuItem>
+        ))}
+        {footer ? (
+          <>
+            <DropdownMenuSeparator />
+            <div className="flex items-center justify-between gap-3 px-2 py-1.5 text-sm font-medium">
+              <span>{footer.label}</span>
+              <span className="font-mono tabular-nums">{footer.value}</span>
+            </div>
+          </>
+        ) : null}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  )
+}
+
+function BillingActionsCell({ billing }: { billing: Billing }) {
+  const router = useRouter()
+  const archive = useArchiveBilling()
+  const [editOpen, setEditOpen] = React.useState(false)
+  const { can } = usePermissions()
+
+  return (
+    <>
+      <DataTableRowActions
+        entityLabel="faturamento"
+        onDetails={() => router.push(billingDetailUrl(billing.billingId))}
+        onEdit={
+          can(PERMISSIONS.faturamentosEditar)
+            ? () => setEditOpen(true)
+            : undefined
+        }
+        history={
+          can(PERMISSIONS.auditoriaVisualizar)
+            ? {
+                entity: "billing",
+                recordId: billing.billingId,
+                subtitle: `Competência ${formatPeriod(billing.period)} · ${billing.contractedCompany}`,
+              }
+            : undefined
+        }
+        onArchive={
+          can(PERMISSIONS.faturamentosArquivar)
+            ? () => archive.mutateAsync(billing.billingId)
+            : undefined
+        }
+      />
+      {/* Montado sob demanda — evita instanciar um form por linha da tabela. */}
+      {editOpen ? (
+        <BillingFormDialog
+          billing={billing}
+          open={editOpen}
+          onOpenChange={setEditOpen}
+        />
+      ) : null}
+    </>
   )
 }

@@ -26,6 +26,7 @@ export type MutationAction =
   | "desarquivar"
   | "anular"
   | "alterar-status"
+  | "reajustar"
   | "importar"
 
 const capitalize = (text: string): string =>
@@ -46,6 +47,8 @@ function successMessage(action: MutationAction, entity: string): string {
       return `${capitalize(entity)} anulado.`
     case "alterar-status":
       return `Status do ${entity} alterado.`
+    case "reajustar":
+      return `Valor mensal do ${entity} reajustado.`
     case "importar":
       return `Importação de ${entity} concluída.`
   }
@@ -65,6 +68,8 @@ function failureMessage(action: MutationAction, entity: string): string {
       return `Não foi possível anular o ${entity}.`
     case "alterar-status":
       return `Não foi possível alterar o status do ${entity}.`
+    case "reajustar":
+      return `Não foi possível reajustar o ${entity}.`
     case "importar":
       return `Não foi possível importar ${entity}.`
   }

@@ -34,6 +34,10 @@ const FIELD_LABELS: Record<string, string> = {
   reforcado_por: "Reforçado por",
   empenho_id: "Empenho",
   // faturamento
+  faturamento_id: "Faturamento",
+  valor_faturado: "Valor Faturado",
+  numero: "Nº do documento fiscal",
+  // Colunas fixas anteriores a 2026-09-14 — seguem nos snapshots antigos.
   sne_desc_1: "SNE Desconta 1",
   sne_desc_2: "SNE Desconta 2",
   valor_faturado_1: "Valor Faturado 1",
@@ -55,6 +59,7 @@ const MONEY_KEYS = new Set([
   "valor_inicial_empenho",
   "saldo_total",
   "valor_reforco",
+  "valor_faturado",
   "valor_faturado_1",
   "valor_faturado_2",
   "valor_ecom",

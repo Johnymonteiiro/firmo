@@ -38,6 +38,7 @@ export function CreditorsKpis() {
         value={data?.total ?? 0}
         hint={`${comSaldo} com saldo · ${anos.size} ano${anos.size === 1 ? "" : "s"}`}
         icon={Building04Icon}
+        tone="info"
         isLoading={isLoading}
       />
       <KpiCard
@@ -45,6 +46,7 @@ export function CreditorsKpis() {
         value={totals?.committed ?? "—"}
         hint="Soma dos movimentos de empenho"
         icon={MoneyReceive01Icon}
+        tone="accent"
         isLoading={isLoading}
       />
       <KpiCard
@@ -52,12 +54,12 @@ export function CreditorsKpis() {
         value={totals?.paid ?? "—"}
         hint="Soma dos movimentos de pagamento"
         icon={MoneySend01Icon}
+        tone="accent"
         isLoading={isLoading}
       />
       <KpiCard
         label="Saldo a pagar"
         value={totals?.balance ?? "—"}
-        hint="Empenhado − pago"
         icon={Coins01Icon}
         tone={
           totals && parseBRL(totals.balance) > 0 ? "warning" : "success"

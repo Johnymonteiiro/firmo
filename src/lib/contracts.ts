@@ -27,6 +27,17 @@ export function isUnlinked(ref: ContractUserRef): boolean {
   return ref.userId === null
 }
 
+/**
+ * Um reajuste do histórico: o valor mensal a partir daquela competência. O
+ * contrato pode ter vários, e é o mais recente até a data analisada que vale.
+ */
+export interface ContractAdjustment {
+  /** "MM/AAAA". */
+  monthYear: string
+  /** Já formatado em BRL pelo backend. */
+  monthlyValue: string
+}
+
 /** Espelha o ContractResponseDto do backend (campos usados na UI). */
 export interface Contract {
   contractId: string
@@ -43,8 +54,11 @@ export interface Contract {
   monthlyValue: string
   effectiveMonthlyValue: string
   currentYearAnnualValue: string
+  /** Espelho do reajuste mais recente — a lista é a fonte da verdade. */
   adjustedMonthlyValue: string | null
   adjustmentMonthYear: string | null
+  /** Histórico de reajustes, da vigência mais antiga para a mais recente. */
+  adjustments: ContractAdjustment[]
   startDate: string
   expiresAt: string
   daysRemaining: number
@@ -132,6 +146,8 @@ export type UpdateContractFormValues = z.infer<typeof updateContractSchema>
  * Body do PATCH. Os papéis só entram quando o usuário efetivamente escolheu
  * outro responsável — o backend recusa (422) reescrever o texto legado de um
  * papel já vinculado, e reenviar o mesmo ID à toa gera ruído na auditoria.
+ * Reajuste não entra aqui: tem rota própria (`POST /contract/:id/adjustments`)
+ * e a ação "Reajustar valor mensal" na tabela.
  */
 export type UpdateContractInput = Omit<
   UpdateContractFormValues,
@@ -141,6 +157,30 @@ export type UpdateContractInput = Omit<
   managerIds?: string[]
   adminFiscalIds?: string[]
   techFiscalIds?: string[]
+}
+
+/** Formulário de reajuste — o MonthPicker entrega "yyyy-MM". */
+export const adjustContractSchema = z.object({
+  monthlyValue: decimalSchema("Informe o novo valor mensal"),
+  period: z.string().min(1, "Informe o mês/ano de vigência"),
+})
+
+export type AdjustContractFormValues = z.infer<typeof adjustContractSchema>
+
+export interface AdjustContractInput {
+  monthlyValue: string
+  /** "MM/AAAA", como o backend grava. */
+  monthYear: string
+}
+
+export function adjustContract(
+  contractId: string,
+  input: AdjustContractInput
+): Promise<Contract> {
+  return apiFetch<Contract>(`/contract/${contractId}/adjustments`, {
+    method: "POST",
+    body: JSON.stringify(input),
+  })
 }
 
 export interface ListContractsResponse {
@@ -279,6 +319,26 @@ export function useUpdateContract() {
     action: "editar",
     entity: "contrato",
     invalidate: [contractsKey],
+  })
+}
+
+/**
+ * O reajuste muda o valor vigente e, com ele, o Valor Economizado de todo
+ * faturamento a partir daquela competência — daí invalidar faturamentos,
+ * orçamentária e painel junto.
+ */
+export function useAdjustContract() {
+  return useFeedbackMutation({
+    mutationFn: ({
+      contractId,
+      input,
+    }: {
+      contractId: string
+      input: AdjustContractInput
+    }) => adjustContract(contractId, input),
+    action: "reajustar",
+    entity: "contrato",
+    invalidate: [contractsKey, ["billings"], ["budget"], ["dashboard"]],
   })
 }
 

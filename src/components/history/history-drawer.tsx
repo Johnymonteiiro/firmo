@@ -38,12 +38,17 @@ const OP_META: Record<
   },
 }
 
-/** Origem do evento — usado no histórico unificado (empenho + reforços). */
+/**
+ * Origem do evento — usado nos históricos unificados (empenho + reforços;
+ * faturamento + SNEs + documentos fiscais).
+ */
 const TABLE_LABEL: Record<string, string> = {
   rel_contrato: "Contrato",
   rel_empenho: "Empenho",
   reforco_empenho: "Reforço",
   faturamento: "Faturamento",
+  faturamento_sne: "SNE do faturamento",
+  faturamento_documento_fiscal: "Documento fiscal",
 }
 
 type Tab = "all" | "update" | "insert"

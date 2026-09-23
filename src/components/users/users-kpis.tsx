@@ -39,6 +39,7 @@ export function UsersKpis() {
         value={data?.total ?? 0}
         hint={`${stats.ativos} ativos · ${stats.inativos} inativos · ${stats.suspensos} suspensos`}
         icon={UserGroupIcon}
+        tone="info"
         isLoading={isLoading}
       />
       <KpiCard
@@ -46,6 +47,7 @@ export function UsersKpis() {
         value={stats.ativos}
         hint="Aptos a operar o sistema"
         icon={UserCheck01Icon}
+        tone="success"
         isLoading={isLoading}
       />
       <KpiCard
@@ -57,7 +59,7 @@ export function UsersKpis() {
             : "Podem gerenciar usuários"
         }
         icon={UserSettings01Icon}
-        tone={stats.admins <= 1 ? "warning" : "default"}
+        tone={stats.admins <= 1 ? "warning" : "info"}
         isLoading={isLoading}
       />
       <KpiCard
@@ -65,7 +67,7 @@ export function UsersKpis() {
         value={stats.inativos + stats.suspensos}
         hint="Inativos e suspensos"
         icon={UserBlock01Icon}
-        tone={stats.suspensos > 0 ? "warning" : "default"}
+        tone={stats.suspensos > 0 ? "warning" : "info"}
         isLoading={isLoading}
       />
     </KpiGrid>

@@ -3,7 +3,7 @@ import { z } from "zod"
 import { apiFetch } from "@/lib/api"
 import { commitmentsKey } from "@/lib/commitments"
 import { useFeedbackMutation } from "@/lib/feedback"
-import { decimalSchema } from "@/lib/validation"
+import { decimalSchema, sneSchema } from "@/lib/validation"
 
 /**
  * Espelha o ReinforcementResponseDto (reforço) do backend.
@@ -53,11 +53,10 @@ export interface Reinforcement {
 /** Validação do form de criação de reforço (sem processo nem responsável). */
 export const createReinforcementSchema = z.object({
   commitmentId: z.string().min(1, "Selecione o empenho"),
-  sne: z
-    .string()
-    .trim()
-    .min(1, "Informe a SNE do reforço")
-    .max(30, "SNE: no máximo 30 caracteres"),
+  // Mesmo formato da SNE do empenho. Reforços antigos do backfill
+  // (`202600408-R1`) continuam sendo exibidos; ao editar um deles, o formato
+  // passa a ser exigido.
+  sne: sneSchema("SNE do reforço"),
   value: decimalSchema(),
   reinforcementDate: z.string().min(1, "Informe a data do reforço"),
 })

@@ -4,10 +4,10 @@ import { KpiCard, KpiGrid, type KpiDelta } from "@/components/kpi"
 import { formatBRL } from "@/lib/format"
 import { monthLabel, type DashboardResponse } from "@/lib/dashboard"
 import {
-  Calendar03Icon,
+  MoneySend01Icon,
   Coins01Icon,
   ContractsIcon,
-  Invoice02Icon,
+  Wallet01Icon,
 } from "@hugeicons/core-free-icons"
 
 /**
@@ -76,14 +76,15 @@ export function DashboardKpis({
                 : `${contracts.total} no exercício`
             }
             icon={ContractsIcon}
-            tone={aVencer > 0 ? "warning" : "default"}
+            tone={aVencer > 0 ? "warning" : "info"}
             isLoading={isLoading}
           />
           <KpiCard
             label="Custo mensal contratado"
             value={formatBRL(contracts.monthlyValueTotal)}
             hint={`${formatBRL(contracts.annualCostTotal)} no exercício`}
-            icon={Calendar03Icon}
+            icon={Wallet01Icon}
+            tone="accent"
             isLoading={isLoading}
           />
         </>
@@ -97,7 +98,7 @@ export function DashboardKpis({
           icon={Coins01Icon}
           // Saldo abaixo de 10% do liberado é o sinal de que o empenho está
           // no fim — quem acompanha precisa reforçar antes de faturar.
-          tone={released > 0 && commitments.balanceTotal / released < 0.1 ? "warning" : "default"}
+          tone={released > 0 && commitments.balanceTotal / released < 0.1 ? "warning" : "success"}
           isLoading={isLoading}
         />
       ) : null}
@@ -107,7 +108,8 @@ export function DashboardKpis({
           label={`Faturado em ${monthLabel(month)}`}
           value={formatBRL(billedThisMonth ?? 0)}
           hint={`competência ${data.monthly[month - 1]?.competence ?? "—"}`}
-          icon={Invoice02Icon}
+          icon={MoneySend01Icon}
+          tone="accent"
           delta={billingDelta(data.monthly, month)}
           isLoading={isLoading}
         />
